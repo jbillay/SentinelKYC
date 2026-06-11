@@ -47,8 +47,10 @@ function routeAfterQa(state) {
   return 'await_decision';
 }
 
+const { CHECKPOINT_DIR } = require('../lib/dataDirs');
+
 const checkpointer = SqliteSaver.fromConnString(
-  path.join(__dirname, '..', 'graph-checkpoints.db')
+  path.join(CHECKPOINT_DIR, 'graph-checkpoints.db')
 );
 
 const graph = new StateGraph(stateSchema)

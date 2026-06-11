@@ -18,9 +18,10 @@ UK company KYC proof-of-concept. The user searches Companies House by name (or c
 - **Sanctions parse**: `fast-xml-parser` (OFAC), `papaparse` (HMT).
 - **Persistence**:
   - Postgres (via `pg` + `drizzle-orm`) — dossiers, runs, decision fragments, prompt registry, sanctions lists/entries, screening hits/evaluations, dossier-level screening overrides, screening config singleton, risk matrix versions, QA results, **party master (8 tables)**, **users (auth)** + `session` (connect-pg-simple), **`run_events` (durable cross-process SSE channel, R2)**. Migrations in `server/db/migrations` (`0000`–`0024`) — **hand-written SQL; never run `drizzle-kit generate`** (removed from the repo — snapshots are stale by design, see `db/SETUP.md`). pg-boss manages its own `pgboss` schema (auto-created on `start()`, not a hand-written migration).
-  - SQLite #1: `server/dev-cache.db` — HTTP response cache (keyed by URL) + KV cache (OCR by file hash, country normalization, adverse-media by name+ISO-week). `better-sqlite3`.
-  - SQLite #2: `server/graph-checkpoints.db` — LangGraph `SqliteSaver` thread checkpoints (one row per thread step, used to resume after `interrupt()`). Reaped at boot for runs terminal > `CHECKPOINT_RETENTION_DAYS` (default 7) — also `npm run checkpoints:reap`.
-  - Filesystem: `server/tmp/<companyNumber>/` — downloaded PDFs + rasterized PNGs (reaped after 30 days).
+  - **Everything the server writes at runtime lives under `server/var/`** (override root with `DATA_DIR`; see `lib/dataDirs.js`):
+    - `var/cache/dev-cache.db` — HTTP response cache (keyed by URL) + KV cache (OCR by file hash, country normalization, adverse-media by name+ISO-week). `better-sqlite3`. Clearable: `npm run var:clean`.
+    - `var/checkpoints/graph-checkpoints.db` — LangGraph `SqliteSaver` thread checkpoints (one row per thread step, used to resume after `interrupt()`). NOT cleared by `var:clean` (would strand paused runs); reaped at boot for runs terminal > `CHECKPOINT_RETENTION_DAYS` (default 7) — also `npm run checkpoints:reap`.
+    - `var/evidence/<companyNumber>/` — downloaded filing PDFs + rasterized PNGs. **Audit artifacts: never auto-deleted** (the old 30-day tmp reaper is retired).
 - **External APIs**: Companies House Public API + Document API (HTTP Basic Auth, API key as username, blank password); GDELT 2.0 DOC API (adverse media, no key).
 
 ## Repo layout
@@ -77,7 +78,8 @@ server/
     migrations/            SQL migrations 0000–0024 (init → … → party master 0012–0019 → users 0020–0021 → run_events 0022 → resume_owed 0023 → run_events type index 0024)
     SETUP.md               One-time native Postgres setup for Windows
   eval/                    R3 eval harness — golden/ corpus, labels.schema.js, score.js (pure), run.js (CLI), README.md
-  scripts/                 ~30 *-smoke.js manual tests + smoke-all.js aggregator + refresh-sanctions.js + seed-users.js + tmp-clean + checkpoint-reap
+  scripts/                 ~30 *-smoke.js manual tests + smoke-all.js aggregator + refresh-sanctions.js + seed-users.js + var-clean + checkpoint-reap
+  lib/dataDirs.js          Runtime data root (var/{cache,checkpoints,evidence}); DATA_DIR override
   .env                     CH_API_KEY, OLLAMA_HOST, PORT, DATABASE_URL, LLM_* provider overrides, GDELT_* overrides
 web/
   src/
@@ -157,7 +159,7 @@ START → gather_input → search_ch → entity_resolution
 Five logical phases share the graph:
 
 1. **Entity resolution + API fetch** — search Companies House, deterministic-score the candidates, pause for user pick (LangGraph `interrupt()`), then in parallel pull profile / officers / PSC / filing-history (`Promise.allSettled`; partial failure now marks the node failed).
-2. **Document pipeline** — pick the latest document per target category, download to `server/tmp/<companyNumber>/<transactionId>.pdf`, try text extract first, OCR with the vision model if the extractor's `ocrPolicy` says to, then run a category-specific structured-extraction prompt against the reasoning LLM.
+2. **Document pipeline** — pick the latest document per target category, download to `server/var/evidence/<companyNumber>/<transactionId>.pdf`, try text extract first, OCR with the vision model if the extractor's `ocrPolicy` says to, then run a category-specific structured-extraction prompt against the reasoning LLM.
 3. **Party resolution + screening** — `resolve_parties` resolves every subject into the party master (and rewrites the graph to `party:<uuid>` IDs); then compile the subject list, run two parallel branches (sanctions against locally cached OFAC SDN + UK HMT; adverse media via GDELT on individuals only), let the reasoning LLM evaluate each potential hit (`confirmed` / `dismissed` / `needs_review`), and assemble a `screeningReport` with a deterministic risk rule.
 4. **Risk assessment** — `assess_risk` runs after `compile_screening_report` (in both graphs). Deterministic weighted-factor score (geographic / entity type / structural complexity / industry) enriched by an LLM rationale, with screening-driven knockouts; persisted to `runs.final_risk_assessment`. See "Risk assessment".
 5. **QA + decision** — `qa_check` (pure engine) routes the case; `qa_narrative` generates a regulator-style memo (LLM, hard-fail); then either `auto_finalize` (low risk, system approve) or `await_decision` (`interrupt()` #2) pauses for the reviewer. See "QA + final decision".
@@ -359,7 +361,7 @@ Two separate APIs, same API key:
 - `https://api.company-information.service.gov.uk` — search, profile, officers, PSC, filing-history.
 - `https://document-api.company-information.service.gov.uk` — filing PDFs.
 
-HTTP Basic Auth: API key as username, password blank. Filings → `Accept: application/pdf`. iXBRL/XHTML are out of scope. The client (`services/ch.js`) has an SSRF allowlist on redirect-follow, input-validation regexes + `tmp/` path-containment, secret redaction in errors, and SQLite `http_cache` caching. Rate limit is 600 req / 5 min — a non-issue locally because of the cache; `forceFresh` bypasses it (the `refresh` flow does).
+HTTP Basic Auth: API key as username, password blank. Filings → `Accept: application/pdf`. iXBRL/XHTML are out of scope. The client (`services/ch.js`) has an SSRF allowlist on redirect-follow, input-validation regexes + `var/evidence/` path-containment, secret redaction in errors, and SQLite `http_cache` caching. Rate limit is 600 req / 5 min — a non-issue locally because of the cache; `forceFresh` bypasses it (the `refresh` flow does).
 
 ## Document selection rule
 

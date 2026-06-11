@@ -5,8 +5,10 @@ const axios = require('axios');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const cache = require('./cache');
-
-const TMP_ROOT = path.resolve(path.join(__dirname, '..', 'tmp'));
+// Downloaded filing PDFs are audit evidence (a reviewer's decision must stay
+// traceable to the exact document) — they live under var/evidence and are
+// never auto-deleted. See lib/dataDirs.js.
+const { EVIDENCE_ROOT } = require('../lib/dataDirs');
 
 const API_BASE = 'https://api.company-information.service.gov.uk';
 const DOC_BASE = 'https://document-api.company-information.service.gov.uk';
@@ -171,12 +173,12 @@ async function downloadDocumentToFile(documentId, companyNumber, transactionId, 
     throw new Error(`invalid documentId: ${documentId}`);
   }
 
-  const dir = path.resolve(path.join(TMP_ROOT, companyNumber));
+  const dir = path.resolve(path.join(EVIDENCE_ROOT, companyNumber));
   const filePath = path.resolve(path.join(dir, `${transactionId}.pdf`));
 
   // Belt-and-braces containment check in case the regex above is ever relaxed.
-  if (!dir.startsWith(TMP_ROOT + path.sep) && dir !== TMP_ROOT) {
-    throw new Error('path escapes TMP_ROOT');
+  if (!dir.startsWith(EVIDENCE_ROOT + path.sep) && dir !== EVIDENCE_ROOT) {
+    throw new Error('path escapes EVIDENCE_ROOT');
   }
   if (!filePath.startsWith(dir + path.sep)) {
     throw new Error('path escapes company dir');

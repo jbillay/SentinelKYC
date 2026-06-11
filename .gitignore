@@ -13,7 +13,8 @@
 **/dist
 **/dist-ssr
 
-# Local caches and scratch
+# Runtime data root (caches, checkpoints, evidence) and legacy scratch dirs
+**/var/
 **/tmp/
 **/cache/
 *.sqlite

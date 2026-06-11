@@ -8,8 +8,8 @@ const { PDFParse } = require('pdf-parse');
 // only because every caller obtains `absPath` from
 // services/ch.js#downloadDocumentToFile, which validates companyNumber and
 // transactionId against /^[A-Z0-9]{6,10}$/ and /^[A-Za-z0-9_-]{1,64}$/
-// respectively and confirms the resulting path is inside TMP_ROOT. Do not
-// call this with an externally-supplied path.
+// respectively and confirms the resulting path is inside EVIDENCE_ROOT. Do
+// not call this with an externally-supplied path.
 function pageFilePath(absPath, pageNumber) {
   const dir = path.dirname(absPath);
   const base = path.basename(absPath, path.extname(absPath));

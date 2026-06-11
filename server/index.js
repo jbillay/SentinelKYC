@@ -23,7 +23,6 @@ const log = setProcessKind('web');
 const promptsService = require('./services/prompts');
 const { seedRiskMatrix } = require('./services/risk/seed');
 const repo = require('./db/repo');
-const { cleanTmp } = require('./scripts/tmp-clean');
 const { reapCheckpoints } = require('./scripts/checkpoint-reap');
 const { registry } = require('./sse/runtime');
 const { isQueueMode, getBoss } = require('./services/queue');
@@ -206,15 +205,8 @@ async function start() {
     })
     .catch((err) => log.warn(`[checkpoints] startup reap failed: ${err.message}`));
 
-  // Reap cached PDFs / rasterized pages older than 30 days. Best-effort.
-  cleanTmp({ days: 30, quiet: true })
-    .then(({ removedFiles, removedBytes }) => {
-      if (removedFiles > 0) {
-        const mb = (removedBytes / (1024 * 1024)).toFixed(1);
-        log.info(`[tmp] reaped ${removedFiles} stale file(s) (${mb} MB)`);
-      }
-    })
-    .catch((err) => log.warn(`[tmp] startup reap failed: ${err.message}`));
+  // Downloaded filing PDFs under var/evidence are audit artifacts — no boot
+  // reaper. Clearable caches live under var/cache (npm run var:clean).
 
   log.info('Probing LLM providers…');
   const initial = await healthRoutes.refreshLlmHealth();

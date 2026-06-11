@@ -23,8 +23,10 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
+const { CHECKPOINT_DIR } = require('../lib/dataDirs');
+
 const DEFAULT_RETENTION_DAYS = Number(process.env.CHECKPOINT_RETENTION_DAYS || 7);
-const CHECKPOINT_DB = path.join(__dirname, '..', 'graph-checkpoints.db');
+const CHECKPOINT_DB = path.join(CHECKPOINT_DIR, 'graph-checkpoints.db');
 
 const TERMINAL_STATUSES = new Set(['done', 'failed', 'not_found', 'cancelled']);
 

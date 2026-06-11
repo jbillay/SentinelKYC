@@ -18,7 +18,7 @@
     "eval:smoke": "node scripts/eval-smoke.js",
     "eval:score-smoke": "node scripts/eval-score-smoke.js",
     "lists:refresh": "node scripts/refresh-sanctions.js",
-    "tmp:clean": "node scripts/tmp-clean.js",
+    "var:clean": "node scripts/var-clean.js",
     "checkpoints:reap": "node scripts/checkpoint-reap.js",
     "screening:smoke": "node scripts/screening-smoke.js",
     "adverse-media-cache:smoke": "node scripts/adverse-media-cache-smoke.js",
