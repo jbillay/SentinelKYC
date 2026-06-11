@@ -1,4 +1,4 @@
-const { documentIdFromMetadataLink } = require('../../services/ch');
+const { documentIdFromMetadataLink } = require('../../services/registry');
 const { traceEvent } = require('../state');
 const { withFragment } = require('../fragments');
 

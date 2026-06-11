@@ -32,13 +32,18 @@ const AGENTS = [
         autoMatchThreshold: z.number().min(0).max(1),
         autoMatchLead: z.number().min(0).max(1),
         maxCandidates: z.number().int().min(1).max(10),
+        // Phase 3 — enrichment vendors layered over the Companies House base
+        // provider (services/registry). 'mock' is the fixture-backed demo
+        // vendor; a real Orbis-class adapter joins this enum when it lands.
+        enrichmentVendors: z.array(z.enum(['mock'])),
       })
       .strict(),
-    defaults: { enabled: true, autoMatchThreshold: 0.85, autoMatchLead: 0.2, maxCandidates: 5 },
+    defaults: { enabled: true, autoMatchThreshold: 0.85, autoMatchLead: 0.2, maxCandidates: 5, enrichmentVendors: [] },
     fields: [
       { key: 'autoMatchThreshold', type: 'number', min: 0, max: 1, step: 0.05, label: 'Auto-match threshold', description: 'Minimum top score for an automatic match (still confirmed by the user).' },
       { key: 'autoMatchLead', type: 'number', min: 0, max: 1, step: 0.05, label: 'Auto-match lead', description: 'How far the top score must be ahead of the runner-up.' },
       { key: 'maxCandidates', type: 'number', min: 1, max: 10, step: 1, label: 'Candidates shown', description: 'How many candidates the disambiguation list shows.' },
+      { key: 'enrichmentVendors', type: 'multiselect', options: ['mock'], label: 'Enrichment vendors', description: 'Data vendors layered over Companies House. Fields they contribute are attributed per vendor. Companies House is always the base.' },
     ],
     io: {
       reads: ['input'],

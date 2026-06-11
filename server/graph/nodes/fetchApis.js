@@ -1,4 +1,7 @@
-const ch = require('../../services/ch');
+// Phase 3 — data comes through the registry port (services/registry):
+// Companies House base + configured enrichment vendors. Enriched records
+// carry `_vendorAttribution` (field → vendorId); surfaced on the fragment.
+const registry = require('../../services/registry');
 const { traceEvent, errorEvent } = require('../state');
 const { withFragment } = require('../fragments');
 
@@ -20,10 +23,10 @@ const fetchApis = withFragment('fetch_apis', async function fetchApis(state, con
   const started = Date.now();
 
   const [profileRes, officersRes, pscRes, filingsRes] = await Promise.allSettled([
-    ch.getProfile(companyNumber, { forceFresh }),
-    ch.getOfficers(companyNumber, { forceFresh }),
-    ch.getPsc(companyNumber, { forceFresh }),
-    ch.getFilingHistory(companyNumber, 100, { forceFresh }),
+    registry.getProfile(companyNumber, { forceFresh }),
+    registry.getOfficers(companyNumber, { forceFresh }),
+    registry.getOwnership(companyNumber, { forceFresh }),
+    registry.getFilings(companyNumber, 100, { forceFresh }),
   ]);
 
   const update = {};
@@ -104,6 +107,12 @@ const fetchApis = withFragment('fetch_apis', async function fetchApis(state, con
     update.trace = [
       traceEvent('fetch_apis', `fetched 4 endpoints in ${ms}ms`, { ...extra, companyNumber }),
     ];
+    // Per-field vendor attribution from the enrichment merge — part of the
+    // audit trail: a reviewer can see exactly which vendor supplied what.
+    const attribution = {};
+    for (const [key, rec] of Object.entries({ profile: update.profile, officers: update.officers, psc: update.psc })) {
+      if (rec?._vendorAttribution) attribution[key] = rec._vendorAttribution;
+    }
     update.__fragment = {
       status: fragStatus,
       summary,
@@ -115,6 +124,7 @@ const fetchApis = withFragment('fetch_apis', async function fetchApis(state, con
         filings: filingsCount,
         endpoints: extra,
         failedEndpoints,
+        ...(Object.keys(attribution).length ? { vendorAttribution: attribution } : {}),
       },
     };
   }

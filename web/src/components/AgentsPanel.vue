@@ -29,7 +29,9 @@ onMounted(async () => {
 function isDirty(agent) {
   const d = drafts[agent.id]
   if (!d) return false
-  return agent.fields.some((f) => coerce(f, d[f.key]) !== agent.config?.[f.key])
+  return agent.fields.some(
+    (f) => JSON.stringify(coerce(f, d[f.key])) !== JSON.stringify(agent.config?.[f.key])
+  )
 }
 
 function coerce(field, value) {
@@ -38,7 +40,16 @@ function coerce(field, value) {
     return Number.isFinite(n) ? n : value
   }
   if (field.type === 'boolean') return !!value
+  if (field.type === 'multiselect') return Array.isArray(value) ? value : []
   return value
+}
+
+function toggleMulti(agentId, key, opt, checked) {
+  const current = Array.isArray(drafts[agentId]?.[key]) ? [...drafts[agentId][key]] : []
+  const ix = current.indexOf(opt)
+  if (checked && ix === -1) current.push(opt)
+  if (!checked && ix !== -1) current.splice(ix, 1)
+  drafts[agentId][key] = current
 }
 
 async function onToggle(agent, e) {
@@ -115,6 +126,18 @@ function onReset(agent) {
           >
             <option v-for="opt in field.options" :key="opt" :value="opt">{{ opt }}</option>
           </select>
+          <span v-else-if="field.type === 'multiselect'" class="multiselect">
+            <label v-for="opt in field.options" :key="opt" class="multiselect-opt">
+              <input
+                type="checkbox"
+                :checked="(drafts[agent.id]?.[field.key] || []).includes(opt)"
+                :disabled="!canEdit"
+                @change="toggleMulti(agent.id, field.key, opt, $event.target.checked)"
+              />
+              {{ opt }}
+            </label>
+            <span v-if="!field.options.length" class="t-meta">No vendors available yet.</span>
+          </span>
           <input
             v-else-if="field.type === 'number'"
             v-model="drafts[agent.id][field.key]"
@@ -204,5 +227,15 @@ function onReset(agent) {
 }
 .agent-version {
   align-self: center;
+}
+.multiselect {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.multiselect-opt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 </style>

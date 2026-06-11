@@ -1,4 +1,6 @@
-const ch = require('../../services/ch');
+// Phase 3 — data comes through the registry port (services/registry):
+// Companies House base + configured enrichment vendors, CH wire shapes.
+const registry = require('../../services/registry');
 const { traceEvent, errorEvent } = require('../state');
 const { withFragment } = require('../fragments');
 
@@ -44,7 +46,7 @@ const searchCh = withFragment('search_ch', async function searchCh(state, config
 
   if (input.companyNumber) {
     try {
-      const profile = await ch.getProfile(input.companyNumber, { forceFresh });
+      const profile = await registry.getProfile(input.companyNumber, { forceFresh });
       if (!profile) {
         return {
           candidates: [],
@@ -106,7 +108,7 @@ const searchCh = withFragment('search_ch', async function searchCh(state, config
   }
 
   try {
-    const result = await ch.searchCompanies(input.name, 20, { forceFresh });
+    const result = await registry.search(input.name, 20, { forceFresh });
     const items = (result?.items || []).map(mapSearchHit);
     return {
       candidates: items,

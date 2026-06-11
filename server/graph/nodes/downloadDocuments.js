@@ -1,10 +1,12 @@
-const ch = require('../../services/ch');
+// Phase 3 — documents flow through the registry port; Companies House is the
+// only document-capable provider, so this is a hardened passthrough.
+const registry = require('../../services/registry');
 const { traceEvent, errorEvent } = require('../state');
 const { withFragment } = require('../fragments');
 
 async function downloadOne(doc, companyNumber, { forceFresh = false } = {}) {
   try {
-    const { path: filePath, cached } = await ch.downloadDocumentToFile(
+    const { path: filePath, cached } = await registry.downloadDocumentToFile(
       doc.documentId,
       companyNumber,
       doc.transactionId,
