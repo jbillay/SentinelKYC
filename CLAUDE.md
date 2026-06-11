@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Reference for AI coding agents working on this repo — the **agent quick-reference**. Keep this file concise — it's loaded into every Claude Code session. The **authoritative system-architecture view** lives in `ARCHITECTURE.md` (also the consolidated improvement backlog); `BUSINESS_PROCESS.md`, `SCREENING_PLAN.md`, and `IMPLEMENTATION.md` cover the case lifecycle, screening design, and phase tracker. The P0/P1 backlog build plans live in `P0_IMPLEMENTATION_PLAN.md` (R0 docs, R1 auth, R3 eval harness, R2 durable runs) and `P1_IMPLEMENTATION_PLAN.md`. Read those before reshaping a subsystem.
+Reference for AI coding agents working on this repo — the **agent quick-reference**. Keep this file concise — it's loaded into every Claude Code session. Docs live under `docs/` (index: `docs/README.md`). The **authoritative system-architecture view** lives in `docs/architecture/ARCHITECTURE.md` (also the consolidated improvement backlog); `docs/business/BUSINESS_PROCESS.md`, `docs/architecture/SCREENING_PLAN.md`, and `docs/architecture/IMPLEMENTATION.md` cover the case lifecycle, screening design, and phase tracker. The executed P0/P1 build plans and past code reviews are archived in `docs/archive/`. Read the relevant design doc before reshaping a subsystem.
 
 ## Project
 
@@ -185,7 +185,7 @@ Every node body is wrapped in `withFragment(nodeId, fn)` (`graph/fragments.js`).
 
 ## Durable run execution (R2)
 
-Flag-gated by `RUN_EXECUTION` (default `inline`). The above describes **inline** mode unchanged. In **queue** mode runs move out of the HTTP request and the in-memory buffer onto a durable Postgres-backed queue + worker. Design rationale in `P0_IMPLEMENTATION_PLAN.md` §R2.
+Flag-gated by `RUN_EXECUTION` (default `inline`). The above describes **inline** mode unchanged. In **queue** mode runs move out of the HTTP request and the in-memory buffer onto a durable Postgres-backed queue + worker. Design rationale in `docs/archive/P0_IMPLEMENTATION_PLAN.md` §R2.
 
 - **Where execution happens.** `routes/runs.js` + `routes/decision.js` call `services/runDispatch.js` instead of `setImmediate(runGraph)`. Inline mode keeps `setImmediate`; queue mode writes a seq-0 "queued" marker to `run_events` and enqueues a **pg-boss** job (`services/queue.js`, one `run` queue, `kind` discriminates start/resume/rescreen/refresh/resumeFailed). `server/worker.js` is the pg-boss subscriber; its job handler calls the **same** `executeRunJob()` mapping the inline path uses, so the two can't drift.
 - **Event transport across the process boundary.** The `RunRegistry` now delegates `pushEvent` to a settable **EventSink** (`services/eventSink.js`). Inline → `InMemorySink` (buffer + live `res`, exactly as before). Worker → `NotifySink` (appends each event to the durable `run_events` table in per-thread `seq` order, then `NOTIFY run_events '<threadId>'`). The web process runs `services/runEventsBus.js`: one `LISTEN run_events` connection that, per SSE subscriber, replays the durable tail (`seq > cursor`) and streams new rows on NOTIFY — so a browser reconnect (even after a **web restart**) replays from `run_events`, not memory. `runGraph` drains the sink at every terminus so the terminal event is persisted before the job completes.
@@ -261,7 +261,7 @@ Routes live in `server/routes/*` (each `register(app[, deps])`, wired in `index.
 
 ## Party Master
 
-The most architecturally significant subsystem (migrations 0012–0019, `services/party/*`, `routes/parties.js`). It does **cross-run, cross-dossier party identity** ("is this the same John Smith we saw on three other dossiers?"), distinct from per-run entity *confirmation*. Read `ARCHITECTURE.md` §8 before changing it.
+The most architecturally significant subsystem (migrations 0012–0019, `services/party/*`, `routes/parties.js`). It does **cross-run, cross-dossier party identity** ("is this the same John Smith we saw on three other dossiers?"), distinct from per-run entity *confirmation*. Read `docs/architecture/ARCHITECTURE.md` §8 before changing it.
 
 - **8 tables**: `parties`, `party_links`, `party_link_status_history`, `party_review_queue`, `party_match_log`, `party_screening_overrides`, `party_watchlist` (+ merge-audit columns on `parties`).
 - **Matcher** (`matcher.js`) — 4-layer waterfall with one SQL round trip: canonicalise via SQL `name_canonical()` → token-overlap GIN prefilter + `pg_trgm` similarity → band classify (`=1.0` EXACT / `≥0.8` HIGH / `≥0.6` REVIEW / `0.4–0.6` Double-Metaphone + Levenshtein gate). `parties.name_canonical` is a Postgres `GENERATED … STORED` column with a **JS twin** in `canonical.js` — the two must stay in lock-step (documented fragility).
@@ -299,7 +299,7 @@ LLM prompts are versioned in Postgres so we can iterate without a redeploy. Keys
 
 ## Screening notes
 
-Detailed design lives in `SCREENING_PLAN.md` — read it before changing screening shape.
+Detailed design lives in `docs/architecture/SCREENING_PLAN.md` — read it before changing screening shape.
 
 - **Subjects** = company (from `profile`) ∪ officers (from `officers.items`) ∪ PSCs (from `psc.items`) ∪ extracted shareholders. Party-keyed when the resolver ran (`subjectId = party:<uuid>`), legacy `${source}:${normalizedName}` otherwise. Authorized signatories and recursive ownership-chain walking are out of scope.
 - **Sanctions sources** loaded into Postgres (`sanctions_lists`, `sanctions_entries`) by `npm run lists:refresh` (`server/scripts/refresh-sanctions.js`). v1 ships **OFAC SDN enhanced XML** + **UK HMT consolidated CSV**. Adding a source = a file under `services/sanctions/sources/` + a parser. **Run `lists:refresh` once after `db:migrate`** — without it, sanctions screening returns zero hits.
@@ -313,7 +313,7 @@ Detailed design lives in `SCREENING_PLAN.md` — read it before changing screeni
 
 ## Risk assessment
 
-Detailed design lives in `IMPLEMENTATION.md` "Phase 3" — read it before changing risk shape.
+Detailed design lives in `docs/architecture/IMPLEMENTATION.md` "Phase 3" — read it before changing risk shape.
 
 - **Where it runs**: `assess_risk` node, after `compile_screening_report`, in both graphs. Plus `POST /api/dossiers/:cn/recalculate-risk` for matrix-edit-only rebases (no run / no thread).
 - **Engine** (`services/risk/`, pure, no I/O): `normalize.js` (country → ISO-2, entity-type aliases, SIC coercion), `factors.js` (the four `compute*`), `knockouts.js`, `thresholds.js`, `receipt.js`, `matrix.js`, `rationale.js`, `index.js` (`assessRisk` barrel). `assessRisk` is async only because `normalizeCountry` may hit the LLM; deterministic given the resolved country.
@@ -328,7 +328,7 @@ Detailed design lives in `IMPLEMENTATION.md` "Phase 3" — read it before changi
 
 ## QA + final decision
 
-Detailed design lives in `IMPLEMENTATION.md` "Phase 5" — read it before changing QA or decision shape.
+Detailed design lives in `docs/architecture/IMPLEMENTATION.md` "Phase 5" — read it before changing QA or decision shape.
 
 - **Where it runs**: `qa_check` then `qa_narrative` after `assess_risk`, in both graphs; the case then `auto_finalize`s (low risk) or pauses at `await_decision` (interrupt #2). Plus `POST …/qa/recompute` for engine-rebases (no run / no thread; refuses on terminal `case_status`).
 - **QA engine** (`services/qa/`, pure, no I/O, no LLM): `projectCase.js` (state → spec-shaped projection: registry_record / ubo_list / screening_results / risk_score / risk_narrative / document_status), `completenessCheck.js` (missing-field gate; document failures are warnings), `consistencyCheck.js` (ubo_not_screened / tier_too_low_for_sanction_hit / tier_too_low_for_knockout / status_contradiction_registry / status_contradiction_document), `routingEngine.js` — **tier-based**: `!passed → standard_review`; `passed && Low → auto_approved`; `passed && Medium → streamlined_review`; `passed && High → standard_review`. Routing reads the **post-knockout** tier (a confirmed sanctions hit forces High via `screeningHighOverride`). `issueMap.js` maps codes → severity + UI anchor + message; `index.js` is the `evaluateQa` barrel. No matrix thresholds are read by QA.
@@ -342,7 +342,7 @@ Detailed design lives in `IMPLEMENTATION.md` "Phase 5" — read it before changi
 ## Authentication (R1)
 
 App-owned user store + server-side sessions + role-based access. Supersedes the
-old spoofable `x-user-id` model. Design rationale in `P0_IMPLEMENTATION_PLAN.md` §R1.
+old spoofable `x-user-id` model. Design rationale in `docs/archive/P0_IMPLEMENTATION_PLAN.md` §R1.
 
 - **Users**: `users` table (migration 0020) — `username`, `password_hash` (bcryptjs, cost 12), `role`, `active`. Seeded by `npm run users:seed` from `SEED_{ANALYST,REVIEWER,ADMIN}_PASSWORD` env (never hard-coded). **Run once after `db:migrate`.**
 - **Sessions**: `express-session` + `connect-pg-simple` on the existing pg pool (`session` table auto-created). httpOnly cookie `ccpoc.sid`, `SameSite=Lax`, `Secure` via `COOKIE_SECURE`, rolling TTL. Durable + revocable + shared across processes (ready for the R2 worker). **The cookie is auto-sent by `EventSource`, so SSE needs no special auth handling.**
@@ -395,7 +395,7 @@ The reasoning LLM is *not* used as a tie-breaker — the deterministic path is t
 - Trace events: `traceEvent(node, msg, extra?)` → `state.trace`. The SSE stream is built from this + fragments + errors.
 - All LLM extraction goes through `extractStructured(input, zodSchema, prompt)`. New prompts go in `services/prompts.js` `DEFAULTS` (seeded automatically).
 - `forceFresh` is plumbed through `config.configurable.forceFresh` → CH cache + download + OCR cache.
-- Several nodes (`resolve_parties`, `auto_finalize`) re-derive `dossierId`/`runId` from the DB by `thread_id` because LangGraph snapshots `configurable` at stream start — known smell, see `ARCHITECTURE.md` §16.4.
+- Several nodes (`resolve_parties`, `auto_finalize`) re-derive `dossierId`/`runId` from the DB by `thread_id` because LangGraph snapshots `configurable` at stream start — known smell, see `docs/architecture/ARCHITECTURE.md` §16.4.
 - The SQL `name_canonical()` and its JS twin (`services/party/canonical.js`), and the decision Zod schema twins (CJS + ESM), must stay in lock-step.
 - No secrets in source. `.env` only.
 - UI: sentence case for strings, no emoji, design tokens in `web/src/styles/tokens.css`.
@@ -409,7 +409,7 @@ The reasoning LLM is *not* used as a tie-breaker — the deterministic path is t
 - No retry-with-backoff infra beyond the one JSON-retry on extraction + GDELT retries.
 - No token-level streaming to the UI — node-level SSE events are sufficient.
 - No unit-test framework. Tests are the `server/scripts/*-smoke.js` manual scripts plus the **R3 eval harness** (`server/eval/`) — a deliberately small, frozen golden-set quality scorer, the *one* sanctioned exception. Don't grow either into a full test framework; keep the golden corpus small (~3–10 cases per type).
-- **Screening v1 explicitly excludes**: PEP screening, recursive ownership-chain walking, authorized signatories, historical sanctions list versioning / re-screen-as-of-date, LLM alias generation, multilingual name matching beyond Latin transliteration, screening in the run-diff view. See `SCREENING_PLAN.md` §11.
+- **Screening v1 explicitly excludes**: PEP screening, recursive ownership-chain walking, authorized signatories, historical sanctions list versioning / re-screen-as-of-date, LLM alias generation, multilingual name matching beyond Latin transliteration, screening in the run-diff view. See `docs/architecture/SCREENING_PLAN.md` §11.
 
 ## Hard environment constraints
 

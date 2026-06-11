@@ -47,14 +47,14 @@ npm run eval        # golden-set quality scoring for LLM steps
 
 ## Documentation
 
+See the [documentation index](docs/README.md). Highlights:
+
 | Doc | Contents |
 |---|---|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Authoritative system architecture + improvement backlog |
-| [BUSINESS_PROCESS.md](BUSINESS_PROCESS.md) | Case lifecycle and business view |
-| [SCREENING_PLAN.md](SCREENING_PLAN.md) | Screening subsystem design |
+| [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) | Authoritative system architecture + improvement backlog |
+| [docs/business/BUSINESS_PROCESS.md](docs/business/BUSINESS_PROCESS.md) | Case lifecycle and business view |
+| [docs/architecture/SCREENING_PLAN.md](docs/architecture/SCREENING_PLAN.md) | Screening subsystem design |
 | [server/db/SETUP.md](server/db/SETUP.md) | One-time native Postgres setup |
-
-(Documentation is being restructured into `docs/` as part of the v0.1 effort.)
 
 ## License
 
