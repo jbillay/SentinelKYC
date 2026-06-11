@@ -2,10 +2,13 @@
 // LLM). Asserts that disabling an agent removes exactly its segment and the
 // spine re-stitches around it, for both presets.
 //
-// A dummy DATABASE_URL keeps db/client.js importable on CI runners with no
-// env; nothing here ever connects (assembly + compile are pure in-memory —
-// compile() is called WITHOUT the sqlite checkpointer).
+// Dummy env keeps require-time asserts in the node import chain happy on CI
+// runners with no .env: db/client.js (DATABASE_URL) and services/ch.js
+// (CH_API_KEY) both throw at module load. Nothing here ever connects or
+// calls out (assembly + compile are pure in-memory — compile() is called
+// WITHOUT the sqlite checkpointer).
 process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgres://smoke:smoke@127.0.0.1:5/smoke';
+process.env.CH_API_KEY = process.env.CH_API_KEY || 'smoke-dummy-key';
 
 const { assembleGraph } = require('../graph/assemble');
 
