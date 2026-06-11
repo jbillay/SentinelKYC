@@ -122,6 +122,7 @@ npm run users:seed                # seed analyst/reviewer/admin from SEED_*_PASS
 npm run auth:smoke                # boots the app on a test port; exercises login/CSRF/role-guard matrix
 npm run db:smoke                  # round-trip a synthetic dossier
 npm test                          # smoke-all.js node-only tier (no DB/LLM); smoke:all adds DB tier; smoke:full adds LLM/app tier
+npm run test:unit                 # Vitest unit tests over the pure engines (server/test/*.test.mjs); :coverage adds v8 coverage
 npm run checkpoints:reap          # delete LangGraph checkpoints for long-terminal runs + VACUUM
 
 # eval harness (R3) — golden-set quality scoring; see server/eval/README.md
@@ -410,7 +411,7 @@ The reasoning LLM is *not* used as a tie-breaker — the deterministic path is t
 - No iXBRL parsing — PDFs only.
 - No retry-with-backoff infra beyond the one JSON-retry on extraction + GDELT retries.
 - No token-level streaming to the UI — node-level SSE events are sufficient.
-- No unit-test framework. Tests are the `server/scripts/*-smoke.js` manual scripts plus the **R3 eval harness** (`server/eval/`) — a deliberately small, frozen golden-set quality scorer, the *one* sanctioned exception. Don't grow either into a full test framework; keep the golden corpus small (~3–10 cases per type).
+- Testing has three tiers, each with a job: **Vitest unit tests** (`server/test/*.test.mjs`, pure engines only — qa, risk, sanctions matching, screening report, canonical, decision schema; v0.1 target 80% coverage on these), the `server/scripts/*-smoke.js` scripts (integration; tiered by smoke-all.js), and the **R3 eval harness** (`server/eval/`) — a deliberately small, frozen golden-set quality scorer. Don't unit-test graph nodes / routes / DB modules (that's the smoke tier's job); keep the golden corpus small (~3–10 cases per type).
 - **Screening v1 explicitly excludes**: PEP screening, recursive ownership-chain walking, authorized signatories, historical sanctions list versioning / re-screen-as-of-date, LLM alias generation, multilingual name matching beyond Latin transliteration, screening in the run-diff view. See `docs/architecture/SCREENING_PLAN.md` §11.
 
 ## Hard environment constraints
