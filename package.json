@@ -1,0 +1,25 @@
+{
+  "name": "sentinelkyc",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agentic KYC for UK companies with a complete, reviewable audit trail",
+  "license": "Unlicense",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev:server": "npm run dev -w server",
+    "dev:web": "npm run dev -w web",
+    "test": "npm run test -w server",
+    "test:unit": "npm run test:unit -w server",
+    "lint": "npm run lint -w web",
+    "build": "npm run build -w web"
+  },
+  "overrides": {
+    "pdfjs-dist": "^5.4.296"
+  }
+}

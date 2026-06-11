@@ -18,27 +18,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   server-tests:
-    name: Server — node smoke tier
+    name: Server — unit + node smoke tier
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: server
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: server/package-lock.json
+          cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm test
+      - run: npm run test:unit -w server
+      - run: npm test -w server
 
   server-db:
     name: Server — migrations + DB smoke
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: server
     services:
       postgres:
         image: postgres:17
@@ -61,25 +56,24 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: server/package-lock.json
+          cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run db:migrate
-      - run: npm run db:smoke
+      - run: npm run db:migrate -w server
+      - run: npm run db:smoke -w server
 
   web:
     name: Web — lint + build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: package-lock.json
       - run: npm ci
       - run: npx oxlint .
+        working-directory: web
       - run: npx eslint .
-      - run: npm run build
+        working-directory: web
+      - run: npm run build -w web
