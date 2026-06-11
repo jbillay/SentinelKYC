@@ -273,9 +273,17 @@ async function resolveSubject({
       // number — runs before the matcher). PARTY_REQUIRE_CORROBORATION=false
       // restores the legacy always-auto-link behaviour.
       const candidate = await repo.findPartyById(top.partyId);
-      const gateActive =
-        partyData.partyType === 'individual' &&
-        String(process.env.PARTY_REQUIRE_CORROBORATION || 'true').toLowerCase() !== 'false';
+      // PARTY_REQUIRE_CORROBORATION env, when explicitly set, wins (legacy
+      // escape hatch + the corroboration smoke toggles it at runtime);
+      // otherwise the ubo-structure agent config decides.
+      let requireCorroboration;
+      if (process.env.PARTY_REQUIRE_CORROBORATION !== undefined && process.env.PARTY_REQUIRE_CORROBORATION !== '') {
+        requireCorroboration = String(process.env.PARTY_REQUIRE_CORROBORATION).toLowerCase() !== 'false';
+      } else {
+        const { loadAgentConfig } = require('../../agents/config');
+        requireCorroboration = (await loadAgentConfig('ubo-structure')).requireCorroboration !== false;
+      }
+      const gateActive = partyData.partyType === 'individual' && requireCorroboration;
       const cor = gateActive
         ? corroborate(partyData, candidate)
         : { ok: true, reason: gateActive ? null : 'gate_disabled_or_corporate', signalsUsed: [] };

@@ -1,5 +1,6 @@
 const { traceEvent } = require('../state');
 const { withFragment } = require('../fragments');
+const { loadAgentConfig } = require('../../agents/config');
 
 const TYPE_KEYWORDS = ['ltd', 'limited', 'plc', 'llp', 'cic'];
 
@@ -92,6 +93,13 @@ const entityResolution = withFragment('entity_resolution', async function entity
     };
   }
 
+  // Thresholds are agent config (Settings → Agents → Entity resolution),
+  // versioned in Postgres; defaults mirror the original constants.
+  const cfg = await loadAgentConfig('entity-resolution');
+  const autoMatchThreshold = cfg.autoMatchThreshold ?? 0.85;
+  const autoMatchLead = cfg.autoMatchLead ?? 0.2;
+  const maxCandidates = Math.max(1, cfg.maxCandidates ?? 5);
+
   const scored = candidates
     .map((c) => scoreCandidate(c, input))
     .sort((a, b) => b.score - a.score);
@@ -103,7 +111,7 @@ const entityResolution = withFragment('entity_resolution', async function entity
   let reason;
 
   const ahead = second ? top.score - second.score : Infinity;
-  if (top.score >= 0.85 && ahead >= 0.2) {
+  if (top.score >= autoMatchThreshold && ahead >= autoMatchLead) {
     status = 'auto_match';
     reason = `top score ${top.score.toFixed(2)} clear of #2 by ${ahead.toFixed(2)}`;
   } else {
@@ -119,7 +127,7 @@ const entityResolution = withFragment('entity_resolution', async function entity
       : `Top match ${top.title} (${top.companyNumber}) at ${top.score.toFixed(2)} — needs user pick (${candidates.length} candidates)`;
 
   return {
-    candidates: scored,
+    candidates: scored.slice(0, maxCandidates),
     resolution: {
       status,
       chosen: status === 'auto_match' ? top.companyNumber : undefined,
@@ -144,7 +152,7 @@ const entityResolution = withFragment('entity_resolution', async function entity
         topScore: top.score,
         runnerUpScore: second?.score ?? null,
         scoreBreakdown: top.scoreBreakdown,
-        top5: scored.slice(0, 5).map((c) => ({
+        top5: scored.slice(0, maxCandidates).map((c) => ({
           companyNumber: c.companyNumber,
           title: c.title,
           score: Number(c.score.toFixed(3)),

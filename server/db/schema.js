@@ -630,9 +630,45 @@ const users = pgTable('users', {
   lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
 });
 
+// --- Agent config registry (migration 0025) --------------------------------
+// Versioned, append-only, singleton-active per agent — the generalized
+// prompt-registry pattern. Body is the agent's full config object; secret
+// fields are stored encrypted inside the jsonb (see services/config/secrets).
+
+const agentConfigVersions = pgTable('agent_config_versions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  agentId: text('agent_id').notNull(),
+  version: integer('version').notNull(),
+  body: jsonb('body').notNull(),
+  notes: text('notes'),
+  createdBy: text('created_by'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+const agentConfigActive = pgTable('agent_config_active', {
+  agentId: text('agent_id').primaryKey(),
+  versionId: uuid('version_id')
+    .notNull()
+    .references(() => agentConfigVersions.id, { onDelete: 'restrict' }),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+const configAudit = pgTable('config_audit', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  scope: text('scope').notNull(),
+  action: text('action').notNull(),
+  versionId: uuid('version_id'),
+  actor: text('actor'),
+  details: jsonb('details'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 module.exports = {
   userRole,
   users,
+  agentConfigVersions,
+  agentConfigActive,
+  configAudit,
   runStatus,
   runTrigger,
   fragmentKind,

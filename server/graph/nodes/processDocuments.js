@@ -4,7 +4,9 @@ const { getExtractor } = require('../extractors');
 const { traceEvent, errorEvent } = require('../state');
 const { withFragment } = require('../fragments');
 
-const OCR_PAGE_CAP = 5;
+const { loadAgentConfig } = require('../../agents/config');
+
+const OCR_PAGE_CAP = 5; // default when agent config is unseeded
 const TEXT_DENSITY_THRESHOLD = 200;
 const OCR_RASTER_SCALE = 1.5;
 
@@ -30,9 +32,15 @@ const RELEVANCE_KEYWORDS = {
 };
 
 async function selectOcrPages(doc, pageCount) {
-  const cap = OCR_PAGE_CAP;
+  // Cap + selection mode come from the document-manager agent config
+  // (Settings → Agents). pageCapEnabled=false lifts the per-document limit
+  // entirely (every page gets the OCR budget — slow, deliberate opt-in).
+  // OCR_PAGE_SELECTION env stays as an explicit override for smokes.
+  const cfg = await loadAgentConfig('document-manager');
+  const capEnabled = cfg.pageCapEnabled !== false;
+  const cap = capEnabled ? (cfg.pageCap ?? OCR_PAGE_CAP) : Math.max(1, pageCount || OCR_PAGE_CAP);
   const firstN = Array.from({ length: Math.min(pageCount || cap, cap) }, (_, i) => i + 1);
-  const mode = String(process.env.OCR_PAGE_SELECTION || 'relevance').toLowerCase();
+  const mode = String(process.env.OCR_PAGE_SELECTION || cfg.pageSelection || 'relevance').toLowerCase();
   const keywords = RELEVANCE_KEYWORDS[doc.category];
   if (mode === 'first' || !keywords || (pageCount || 0) <= cap) {
     return { pages: firstN, selectionMode: 'first' };

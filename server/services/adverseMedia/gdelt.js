@@ -143,7 +143,17 @@ function normalizeArticle(item) {
 
 async function searchGdelt(name, opts = {}) {
   const endpoint = process.env.GDELT_DOC_ENDPOINT || DEFAULT_ENDPOINT;
-  const timespan = process.env.GDELT_TIMESPAN || DEFAULT_TIMESPAN;
+  // Env override → screening agent config → baked default.
+  let timespan = process.env.GDELT_TIMESPAN;
+  if (!timespan) {
+    try {
+      const { loadAgentConfig } = require('../../agents/config');
+      timespan = (await loadAgentConfig('screening')).gdeltTimespan;
+    } catch {
+      /* config unavailable (e.g. standalone script) → default */
+    }
+  }
+  timespan = timespan || DEFAULT_TIMESPAN;
   const count = Math.min(250, Math.max(1, opts.count || 20));
   const query = buildQuery(name);
 

@@ -49,6 +49,8 @@ const documentsRoutes = require('./routes/documents');
 const healthRoutes = require('./routes/health');
 const metaRoutes = require('./routes/meta');
 const partiesRoutes = require('./routes/parties');
+const agentsRoutes = require('./routes/agents');
+const { seedAgentConfigs } = require('./agents/config');
 
 const app = express();
 
@@ -118,6 +120,7 @@ documentsRoutes.register(app);
 healthRoutes.register(app);
 metaRoutes.register(app);
 partiesRoutes.register(app, { readUserId });
+agentsRoutes.register(app);
 
 // Global error handler. Routes that catch and re-throw via next(err) land here,
 // as do unhandled rejections inside express middleware. Map typed errors to
@@ -152,6 +155,13 @@ async function start() {
     log.info('[prompts] registry seeded');
   } catch (err) {
     log.error(`[prompts] seed failed: ${err.message}`);
+  }
+
+  try {
+    await seedAgentConfigs();
+    log.info('[agents] config registry seeded');
+  } catch (err) {
+    log.error(`[agents] config seed failed: ${err.message}`);
   }
 
   try {

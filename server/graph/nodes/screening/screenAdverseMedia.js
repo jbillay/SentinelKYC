@@ -35,6 +35,23 @@ const screenAdverseMedia = withFragment(
     const subjects = all.filter(shouldScreen);
     const emitProgress = config?.configurable?.emitProgress;
 
+    // Adverse media can be switched off independently of sanctions screening
+    // (Settings → Agents → Screening). Sanctions branch is unaffected.
+    const { loadAgentConfig } = require('../../../agents/config');
+    const agentCfg = await loadAgentConfig('screening');
+    if (agentCfg.adverseMediaEnabled === false) {
+      return {
+        trace: [
+          traceEvent('screen_adverse_media', 'adverse media disabled in screening agent config — skipping'),
+        ],
+        __fragment: {
+          status: 'skipped',
+          summary: 'Adverse-media screening disabled in agent config',
+          inputs: { subjectCount: all.length, individualCount: subjects.length },
+        },
+      };
+    }
+
     if (!subjects.length) {
       return {
         trace: [
