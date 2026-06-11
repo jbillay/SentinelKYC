@@ -1,0 +1,22 @@
+{
+  "id": "am-dismissed-01",
+  "type": "adverse_media",
+  "description": "Same name but a positive, unrelated sports context — should be dismissed.",
+  "subject": {
+    "name": "Gregory L278 Hale",
+    "kind": "individual",
+    "role": "director",
+    "nationality": "GB"
+  },
+  "hit": {
+    "listSource": "adverse_media",
+    "rawEntry": {
+      "title": "Gregory L278 Hale wins regional amateur golf championship for third year",
+      "snippet": "",
+      "url": "https://sports.example.com/hale-golf-win",
+      "publishedAt": "2023-07-15T12:00:00Z",
+      "source": "sports.example.com"
+    }
+  },
+  "expected": { "decision": "dismissed" }
+}

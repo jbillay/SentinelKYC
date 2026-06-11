@@ -1,0 +1,26 @@
+{
+  "id": "san-dismissed-01",
+  "type": "sanctions",
+  "description": "Synthetic true negative: identical name but a hard DOB conflict (1958 vs 1990) and different nationality.",
+  "subject": {
+    "name": "Maria Santos",
+    "kind": "individual",
+    "role": "shareholder",
+    "dob": "1990-09-02",
+    "nationality": "PT"
+  },
+  "hit": {
+    "listSource": "uk_hmt",
+    "matchScore": 0.95,
+    "rawEntry": {
+      "primaryName": "Maria SANTOS",
+      "entryType": "individual",
+      "aliases": [],
+      "dob": "1958-01-30",
+      "nationality": "Venezuela",
+      "programs": ["VENEZUELA"],
+      "identifiers": []
+    }
+  },
+  "expected": { "decision": "dismissed" }
+}

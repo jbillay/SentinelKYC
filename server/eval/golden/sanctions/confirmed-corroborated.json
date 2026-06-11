@@ -1,0 +1,26 @@
+{
+  "id": "san-confirmed-01",
+  "type": "sanctions",
+  "description": "Synthetic true positive: exact name plus matching DOB and nationality on an OFAC entry.",
+  "subject": {
+    "name": "Dmitri Volkov",
+    "kind": "individual",
+    "role": "director",
+    "dob": "1972-04-18",
+    "nationality": "RU"
+  },
+  "hit": {
+    "listSource": "ofac_sdn",
+    "matchScore": 0.97,
+    "rawEntry": {
+      "primaryName": "Dmitri VOLKOV",
+      "entryType": "individual",
+      "aliases": [{ "name": "Dmitriy Volkov" }],
+      "dob": "1972-04-18",
+      "nationality": "Russia",
+      "programs": ["UKRAINE-EO13662"],
+      "identifiers": [{ "type": "Passport", "value": "51XXXXXXX", "country": "Russia" }]
+    }
+  },
+  "expected": { "decision": "confirmed" }
+}

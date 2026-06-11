@@ -1,0 +1,19 @@
+{
+  "id": "acc-acme-01",
+  "type": "extraction",
+  "category": "accounts",
+  "description": "Small-company full accounts with headline financials stated in the notes.",
+  "inputText": "# Annual Report and Financial Statements\n\nACME WIDGETS LIMITED\nFor the year ended 31 December 2022\n\n## Profit and Loss Account\n\nTurnover: 1,250,000\nCost of sales: (820,000)\nGross profit: 430,000\nAdministrative expenses: (310,000)\nProfit for the financial year: 120,000\n\n## Balance Sheet\n\nTotal assets: 2,400,000\nCreditors: (1,650,000)\nNet assets: 750,000\n\n## Notes\n\nAverage number of employees during the year: 18\n",
+  "expected": {
+    "periodEnd": "2022-12-31",
+    "turnover": 1250000,
+    "profit": 120000,
+    "totalAssets": 2400000,
+    "netAssets": 750000,
+    "employees": 18
+  },
+  "scoring": {
+    "recordSets": [],
+    "scalarFields": ["periodEnd", "turnover", "profit", "totalAssets", "netAssets", "employees"]
+  }
+}

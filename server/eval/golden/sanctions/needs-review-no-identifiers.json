@@ -1,0 +1,26 @@
+{
+  "id": "san-needs-review-01",
+  "type": "sanctions",
+  "description": "Synthetic borderline: strong name match but the entry carries no DOB, nationality, or identifiers, and the subject lacks them too — should bias to needs_review.",
+  "subject": {
+    "name": "Ahmed Hassan",
+    "kind": "individual",
+    "role": "psc",
+    "dob": null,
+    "nationality": null
+  },
+  "hit": {
+    "listSource": "ofac_sdn",
+    "matchScore": 0.91,
+    "rawEntry": {
+      "primaryName": "Ahmed HASSAN",
+      "entryType": "individual",
+      "aliases": [],
+      "dob": null,
+      "nationality": null,
+      "programs": ["SDGT"],
+      "identifiers": []
+    }
+  },
+  "expected": { "decision": "needs_review" }
+}

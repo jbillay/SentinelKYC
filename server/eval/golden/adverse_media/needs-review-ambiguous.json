@@ -1,0 +1,22 @@
+{
+  "id": "am-needs-review-01",
+  "type": "adverse_media",
+  "description": "Adverse topic (money-laundering probe) and matching name, but the article gives no detail tying it to this specific individual — ambiguous, headline only.",
+  "subject": {
+    "name": "Gregory L278 Hale",
+    "kind": "individual",
+    "role": "director",
+    "nationality": "GB"
+  },
+  "hit": {
+    "listSource": "adverse_media",
+    "rawEntry": {
+      "title": "Regulator opens money-laundering inquiry into firm linked to G. Hale",
+      "snippet": "",
+      "url": "https://news.example.com/hale-aml-inquiry",
+      "publishedAt": "2023-09-20T08:30:00Z",
+      "source": "news.example.com"
+    }
+  },
+  "expected": { "decision": "needs_review", "category": "financial_crime" }
+}

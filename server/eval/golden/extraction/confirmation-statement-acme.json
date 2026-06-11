@@ -1,0 +1,21 @@
+{
+  "id": "cs-acme-01",
+  "type": "extraction",
+  "category": "confirmation-statement",
+  "description": "Clean e-filed confirmation statement, three individual shareholders with explicit shareholdings.",
+  "inputText": "# Confirmation Statement (CS01)\n\nCompany Number: 09876543\nCompany Name: ACME WIDGETS LIMITED\nStatement date: 14 March 2023\n\n## Statement of capital\n\nClass of shares: Ordinary\nNumber of shares: 100\nAggregate nominal value: GBP 100\n\n## Shareholdings\n\n| Shareholder | Class | Shares held | Percentage |\n|-------------|----------|-------------|------------|\n| John A. Smith | Ordinary | 60 | 60% |\n| Mary Patel | Ordinary | 30 | 30% |\n| Riverside Holdings Ltd | Ordinary | 10 | 10% |\n\nThe company confirms that the information in this statement is correct as at the statement date.\n",
+  "expected": {
+    "statementDate": "2023-03-14",
+    "shareholders": [
+      { "name": "John A. Smith", "type": "individual", "shares": 60, "percentage": 60, "shareClass": "Ordinary" },
+      { "name": "Mary Patel", "type": "individual", "shares": 30, "percentage": 30, "shareClass": "Ordinary" },
+      { "name": "Riverside Holdings Ltd", "type": "corporate", "shares": 10, "percentage": 10, "shareClass": "Ordinary" }
+    ]
+  },
+  "scoring": {
+    "recordSets": [
+      { "field": "shareholders", "key": "name", "fields": ["type", "shares", "percentage"] }
+    ],
+    "scalarFields": ["statementDate"]
+  }
+}

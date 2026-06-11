@@ -1,0 +1,299 @@
+/* Material Symbols icon font — keep weight & fill controllable */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  user-select: none;
+  flex-shrink: 0;
+}
+.material-symbols-outlined.icon-fill {
+  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+.material-symbols-outlined.icon-sm {
+  font-size: 16px;
+}
+.material-symbols-outlined.icon-lg {
+  font-size: 24px;
+}
+
+/* KYC Dossier — shared component primitives.
+   Anything used in more than one place lives here, so component <style scoped>
+   blocks only carry rules that are genuinely local to that component. */
+
+/* ───────────── Spinner ───────────── */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+.spinner--sm {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+}
+.spinner--on-primary {
+  border-color: rgba(255, 255, 255, 0.4);
+  border-top-color: var(--color-text-on-primary);
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ───────────── Step number badge ───────────── */
+.step-num {
+  flex-shrink: 0;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  margin-top: 2px;
+}
+.step-num--danger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+}
+.step-num--warning {
+  background: var(--color-tertiary-soft);
+  color: var(--color-tertiary);
+}
+
+/* ───────────── Status pill ───────────── */
+.status-pill {
+  display: inline-block;
+  text-transform: capitalize;
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--color-surface-sunken);
+  color: var(--color-text-secondary);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.status-pill--active {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+.status-pill--dissolved {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+/* ───────────── Case-status pills (Phase 5) ─────────────
+   Reviewer-state colour palette. Each value of dossiers.case_status maps to a
+   chip + a soft surface used by the FinalDecisionPanel banner. */
+.case-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--color-surface-sunken);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.case-status--pending {
+  background: var(--color-surface-sunken);
+  color: var(--color-text-tertiary);
+}
+.case-status--auto_approved {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+.case-status--streamlined_review {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+.case-status--standard_review {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+.case-status--info_requested {
+  background: #ede4f6;
+  color: #6b3aa8;
+}
+.case-status--escalated {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-weight: 600;
+}
+.case-status--approved {
+  background: var(--color-success);
+  color: var(--color-text-on-primary);
+}
+.case-status--rejected {
+  background: var(--color-danger);
+  color: var(--color-text-on-primary);
+}
+
+/* ───────────── Risk tier badges ───────────── */
+.risk-tier-low {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+.risk-tier-medium {
+  background: var(--color-warning-soft, #fbf1e1);
+  color: var(--color-warning, #b45309);
+}
+.risk-tier-high {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+.risk-tier-prohibited {
+  background: var(--color-danger);
+  color: var(--color-text-on-primary);
+}
+
+/* ───────────── Provenance dot (OCR-derived field) ───────────── */
+.provenance {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-tertiary);
+  display: inline-block;
+  cursor: help;
+  flex-shrink: 0;
+}
+
+/* ───────────── Extraction honesty badges (R6) ─────────────
+   Muted by design: advisory signals (model-reported confidence, OCR
+   provenance), never alarm styling — that's reserved for red flags. */
+.conf-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--color-tertiary);
+  background: transparent;
+  white-space: nowrap;
+  cursor: help;
+  vertical-align: middle;
+}
+
+.conf-summary {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--color-tertiary);
+  cursor: help;
+}
+
+/* X1 — OCR truncation notice on a source-filing row. Warning-toned: this is
+   a correctness-of-omission signal, more serious than a provenance hint. */
+.doc-truncated {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border: 1px solid var(--color-warning, #b45309);
+  border-radius: 999px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--color-warning, #b45309);
+  white-space: nowrap;
+  cursor: help;
+}
+
+/* ───────────── Buttons ───────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: 10px var(--sp-6);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--fs-body);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.btn--primary {
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+  border-color: var(--color-primary);
+}
+.btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+.btn--secondary {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.btn--secondary:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+}
+.btn--ghost {
+  background: transparent;
+  color: var(--color-primary);
+  border-color: transparent;
+}
+.btn--ghost:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+}
+.btn:disabled {
+  background: var(--color-surface-sunken);
+  border-color: var(--color-border);
+  color: var(--color-text-tertiary);
+  cursor: not-allowed;
+}
+
+/* ───────────── Inline code ───────────── */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  font-variant-numeric: tabular-nums;
+}
+
+pre {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  background: var(--color-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--sp-3) var(--sp-4);
+  margin: 0;
+  overflow: auto;
+  max-height: 400px;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+}

@@ -1,0 +1,22 @@
+{
+  "id": "am-confirmed-01",
+  "type": "adverse_media",
+  "description": "Headline directly names the subject in a fraud conviction — clear confirmed, fraud, high.",
+  "subject": {
+    "name": "Gregory L278 Hale",
+    "kind": "individual",
+    "role": "director",
+    "nationality": "GB"
+  },
+  "hit": {
+    "listSource": "adverse_media",
+    "rawEntry": {
+      "title": "Former company director Gregory L278 Hale convicted of GBP 4m investment fraud",
+      "snippet": "",
+      "url": "https://news.example.com/hale-fraud-conviction",
+      "publishedAt": "2023-11-02T09:00:00Z",
+      "source": "news.example.com"
+    }
+  },
+  "expected": { "decision": "confirmed", "category": "fraud", "severity": "high" }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "inc-acme-01",
+  "type": "extraction",
+  "category": "incorporation",
+  "description": "Memorandum of association listing two initial subscribers.",
+  "inputText": "# Memorandum of Association\n\nof ACME WIDGETS LIMITED\n\nIncorporated on 2 February 2015\n\nEach subscriber to this memorandum of association wishes to form a company under the Companies Act 2006 and agrees to become a member and to take at least one share.\n\n| Name of subscriber | Number of shares taken |\n|--------------------|------------------------|\n| John A. Smith | 1 |\n| Mary Patel | 1 |\n\nDated 2 February 2015.\n",
+  "expected": {
+    "incorporationDate": "2015-02-02",
+    "initialSubscribers": [
+      { "name": "John A. Smith", "sharesAllotted": 1 },
+      { "name": "Mary Patel", "sharesAllotted": 1 }
+    ]
+  },
+  "scoring": {
+    "recordSets": [
+      { "field": "initialSubscribers", "key": "name", "fields": ["sharesAllotted"] }
+    ],
+    "scalarFields": ["incorporationDate"]
+  }
+}

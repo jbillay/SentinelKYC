@@ -1,0 +1,48 @@
+# Repo-wide ignores. Per-folder .gitignore files extend this.
+
+# Secrets — never commit any .env, but keep templates.
+**/.env
+**/.env.local
+**/.env.*.local
+!**/.env.example
+
+# Dependency directories
+**/node_modules
+
+# Build artifacts
+**/dist
+**/dist-ssr
+
+# Local caches and scratch
+**/tmp/
+**/cache/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.db-shm
+*.db-wal
+
+# Claude Code local state
+.claude/
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Misc
+*.tsbuildinfo
+.eslintcache
