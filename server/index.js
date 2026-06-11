@@ -230,15 +230,25 @@ async function start() {
   log.info('Probing LLM providers…');
   const initial = await healthRoutes.refreshLlmHealth();
 
+  // LLM_BOOT_CHECK=strict (default): an unreachable LLM provider is fatal —
+  // the right dev-machine behavior (a run would fail mid-pipeline anyway).
+  // =warn: log and keep listening — for environments that exercise the HTTP
+  // surface without LLMs (the CI auth smoke); the health banner still shows
+  // the providers as down.
   const unreachable = ['ocr', 'reasoning'].filter((t) => !initial[t]?.ok);
   if (unreachable.length) {
-    log.error(`[fatal] LLM provider unreachable for: ${unreachable.join(', ')}`);
+    const strict = String(process.env.LLM_BOOT_CHECK || 'strict').toLowerCase() !== 'warn';
+    const sev = strict ? 'error' : 'warn';
+    log[sev](`${strict ? '[fatal] ' : ''}LLM provider unreachable for: ${unreachable.join(', ')}`);
     for (const t of unreachable) {
       const b = initial[t] || {};
-      log.error(`${t}: provider=${b.provider} model=${b.model} — ${b.detail || 'unreachable'}`);
+      log[sev](`${t}: provider=${b.provider} model=${b.model} — ${b.detail || 'unreachable'}`);
     }
-    log.error('ollama → start it with `ollama serve`; nvidia → check NVIDIA_API_KEY / connectivity.');
-    process.exit(1);
+    if (strict) {
+      log.error('ollama → start it with `ollama serve`; nvidia → check NVIDIA_API_KEY / connectivity.');
+      process.exit(1);
+    }
+    log.warn('LLM_BOOT_CHECK=warn — starting anyway; runs will fail until a provider is reachable.');
   }
 
   let anyMissing = false;

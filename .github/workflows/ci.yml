@@ -55,6 +55,9 @@ jobs:
       # the require-time assert (never called over the network in this job).
       SESSION_SECRET: ci-only-session-secret-not-a-real-deployment
       CH_API_KEY: ci-dummy-key
+      # No LLM on CI runners — boot warns instead of exiting (auth smoke only
+      # exercises the HTTP auth surface, never the pipeline).
+      LLM_BOOT_CHECK: warn
       SEED_ANALYST_PASSWORD: ci-analyst-pw-1
       SEED_REVIEWER_PASSWORD: ci-reviewer-pw-1
       SEED_ADMIN_PASSWORD: ci-admin-pw-1
