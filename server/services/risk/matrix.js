@@ -2,7 +2,9 @@
 // Mirrors services/prompts.js. Postgres is the source of truth; this module
 // is the single read path with an in-process cache for the active matrix.
 
-const repo = require('../../db/repo');
+// db/repo is required lazily inside the DB-touching functions so the pure
+// half of this module (validateMatrix etc.) stays importable without a
+// DATABASE_URL — db/client.js throws at require-time when it is unset.
 const DEFAULT_MATRIX = require('./defaults/matrix.json');
 
 const KNOWN_KNOCKOUT_TAGS = ['screeningProhibited', 'screeningHighOverride', 'screeningMediumFloor'];
@@ -183,6 +185,7 @@ function invalidate() {
 
 async function loadActiveMatrix() {
   if (activeCache) return activeCache;
+  const repo = require('../../db/repo');
   const row = await repo.getActiveRiskMatrix();
   if (row && row.body) {
     activeCache = {
@@ -206,19 +209,23 @@ async function loadActiveMatrix() {
 }
 
 async function loadMatrixVersion(id) {
+  const repo = require('../../db/repo');
   return repo.getRiskMatrixVersion(id);
 }
 
 async function listMatrixVersions() {
+  const repo = require('../../db/repo');
   return repo.listRiskMatrixVersions();
 }
 
 async function createMatrixVersion(body, notes) {
   assertValidMatrix(body);
+  const repo = require('../../db/repo');
   return repo.createRiskMatrixVersion({ body, notes: notes ?? null });
 }
 
 async function setActiveMatrix(versionId) {
+  const repo = require('../../db/repo');
   const row = await repo.setActiveRiskMatrix(versionId);
   invalidate();
   return row;
