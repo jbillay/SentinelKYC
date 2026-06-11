@@ -32,11 +32,28 @@ function legacyOllamaBlock(h) {
 }
 
 function register(app) {
-  app.get('/api/health', (_req, res) => {
+  app.get('/api/health', async (_req, res) => {
+    // Per-agent enablement (Phase 2). Best-effort: a DB hiccup must not take
+    // the health endpoint down with it.
+    let agents = null;
+    try {
+      const { listAgentDefs } = require('../agents/defs');
+      const { enabledMap } = require('../agents/config');
+      const enabled = await enabledMap();
+      agents = listAgentDefs().map((d) => ({
+        id: d.id,
+        name: d.name,
+        required: !!d.required,
+        enabled: enabled[d.id] !== false,
+      }));
+    } catch {
+      /* agents block omitted on failure */
+    }
     res.json({
       ok: state.llmHealth.ok,
       llm: state.llmHealth,
       ollama: legacyOllamaBlock(state.llmHealth),
+      ...(agents ? { agents } : {}),
       server: { uptime: process.uptime(), now: Date.now() },
     });
   });

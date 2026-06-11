@@ -19,6 +19,7 @@ const TIERS = {
     'decision-schema-parity-smoke.js',
     'qa-engine-smoke.js',
     'risk-engine-smoke.js',
+    'agents-assemble-smoke.js',
   ],
   db: [
     'config-parity-smoke.js',

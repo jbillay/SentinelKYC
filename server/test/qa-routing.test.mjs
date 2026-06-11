@@ -32,3 +32,23 @@ describe('qa routing engine', () => {
     expect(route({ passed: true, tier: 'Bananas' }).caseStatus).toBe('standard_review');
   });
 });
+
+// Phase 2 degraded mode: a run whose screening or risk agent was disabled was
+// never fully assessed — it must reach a human, even if everything else is
+// clean. Other skipped agents (documents, ubo) do not force review by
+// themselves; their absence is judged by the normal checks.
+describe('qa routing with skipped agents', () => {
+  it('never auto-approves when screening was skipped', () => {
+    const r = route({ passed: true, tier: 'Low', skippedAgents: ['screening'] });
+    expect(r.caseStatus).toBe('standard_review');
+    expect(r.qaSummary).toContain('disabled');
+  });
+
+  it('never auto-approves when risk was skipped', () => {
+    expect(route({ passed: true, tier: 'Low', skippedAgents: ['risk-assessment'] }).caseStatus).toBe('standard_review');
+  });
+
+  it('does not force review for a skipped document manager alone', () => {
+    expect(route({ passed: true, tier: 'Low', skippedAgents: ['document-manager'] }).caseStatus).toBe('auto_approved');
+  });
+});

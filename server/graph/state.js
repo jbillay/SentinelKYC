@@ -376,6 +376,13 @@ const QaNarrativeSchema = z.object({
 
 const QaResultSchema = z.object({
   passed: z.boolean(),
+  // Phase 2 (v0.1) — degraded-mode markers. `skipped` is true when the QA
+  // agent itself was disabled (the qa_skipped stamp node wrote this result);
+  // `skippedAgents` lists upstream agents that were disabled for this run and
+  // influenced routing (skipped screening/risk force standard_review — fail
+  // toward human review, never auto-approve on partial assessment).
+  skipped: z.boolean().optional(),
+  skippedAgents: z.array(z.string()).optional(),
   completeness: z.object({
     passed: z.boolean(),
     missing: z.array(z.string()).default(() => []),
@@ -465,6 +472,15 @@ const stateSchema = z.object({
   riskAssessment: RiskAssessmentSchema.optional(),
   qaResult: QaResultSchema.optional(),
   qaNarrative: QaNarrativeSchema.optional(),
+
+  // Phase 2 (v0.1) — per-run snapshot of which agents were disabled when the
+  // run was dispatched ({ agentId: 'skipped' }). Seeded once by
+  // runDispatch#executeRunJob; consumers (QA engine, risk receipt) treat a
+  // skipped agent's missing output as "not evaluated", never as a failure.
+  // Frozen per run: toggling an agent mid-run does not change this snapshot.
+  agentStatus: withLangGraph(z.record(z.string(), z.enum(['skipped', 'completed', 'failed'])), {
+    default: () => ({}),
+  }),
 });
 
 function traceEvent(node, msg, extra) {

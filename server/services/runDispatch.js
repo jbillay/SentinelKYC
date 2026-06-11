@@ -9,7 +9,7 @@
 // never drift.
 
 const { Command } = require('@langchain/langgraph');
-const { compiledGraph, compiledScreeningOnlyGraph } = require('../graph/build');
+const { getGraph } = require('../graph/build');
 const { registry, runGraph } = require('../sse/runtime');
 const { isQueueMode, enqueueRun } = require('./queue');
 const repo = require('../db/repo');
@@ -18,8 +18,16 @@ const { log } = require('./log');
 
 const EVENT_CHANNEL = 'run_events';
 
-function selectGraph(graphKey) {
-  return graphKey === 'screening' ? compiledScreeningOnlyGraph : compiledGraph;
+// Per-run snapshot of disabled agents — written into state.agentStatus at
+// dispatch from the SAME enabled map that selected the graph topology, so
+// the two can't disagree. Consumers (QA engine, UI) read the state snapshot,
+// never the live config.
+function skippedAgentStatus(enabled) {
+  const status = {};
+  for (const [id, on] of Object.entries(enabled)) {
+    if (!on) status[id] = 'skipped';
+  }
+  return status;
 }
 
 // Seed a worker's fresh registry thread-state from job context so the
@@ -54,28 +62,46 @@ async function executeRunJob(data, { workerId = null } = {}) {
   seedThread(t, ctx);
 
   switch (kind) {
-    case 'start':
-      return runGraph(threadId, { input: data.input }, { graph: compiledGraph, workerId });
-    case 'refresh':
+    case 'start': {
+      const { graph, enabled } = await getGraph('full');
       return runGraph(
         threadId,
-        { input: { companyNumber: data.companyNumber } },
+        { input: data.input, agentStatus: skippedAgentStatus(enabled) },
+        { graph, workerId },
+      );
+    }
+    case 'refresh': {
+      const { graph, enabled } = await getGraph('full');
+      return runGraph(
+        threadId,
+        {
+          input: { companyNumber: data.companyNumber },
+          agentStatus: skippedAgentStatus(enabled),
+        },
         {
           forceFresh: true,
           autoResume: { companyNumber: data.companyNumber },
-          graph: compiledGraph,
+          graph,
           workerId,
         },
       );
-    case 'rescreen':
-      return runGraph(threadId, data.seedInput, { graph: compiledScreeningOnlyGraph, workerId });
-    case 'resume':
-      return runGraph(threadId, new Command({ resume: data.resume }), {
-        graph: selectGraph(data.graphKey),
-        workerId,
-      });
-    case 'resumeFailed':
-      return runGraph(threadId, null, { graph: selectGraph(data.graphKey), workerId });
+    }
+    case 'rescreen': {
+      const { graph, enabled } = await getGraph('screening');
+      return runGraph(
+        threadId,
+        { ...data.seedInput, agentStatus: skippedAgentStatus(enabled) },
+        { graph, workerId },
+      );
+    }
+    case 'resume': {
+      const { graph } = await getGraph(data.graphKey === 'screening' ? 'screening' : 'full');
+      return runGraph(threadId, new Command({ resume: data.resume }), { graph, workerId });
+    }
+    case 'resumeFailed': {
+      const { graph } = await getGraph(data.graphKey === 'screening' ? 'screening' : 'full');
+      return runGraph(threadId, null, { graph, workerId });
+    }
     default:
       throw new Error(`executeRunJob: unknown kind ${kind}`);
   }

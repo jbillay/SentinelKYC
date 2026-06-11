@@ -41,6 +41,7 @@
     "party-resolver:smoke": "node scripts/party-resolver-smoke.js",
     "party-corroboration:smoke": "node scripts/party-corroboration-smoke.js",
     "graph-resolver:smoke": "node scripts/graph-resolver-smoke.js",
+    "agents:smoke": "node scripts/agents-assemble-smoke.js",
     "screening-rekey:smoke": "node scripts/screening-rekey-smoke.js",
     "party-graph:smoke": "node scripts/party-graph-smoke.js",
     "test": "node scripts/smoke-all.js",

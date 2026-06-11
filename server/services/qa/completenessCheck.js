@@ -13,6 +13,10 @@
 function checkCompleteness(projection = {}) {
   const missing = [];
   const warnings = [];
+  // Phase 2 — a disabled agent's absent output is "not evaluated", not
+  // "missing": it must not fail completeness (routing separately forces
+  // human review when screening/risk were skipped — see routingEngine.js).
+  const skipped = (id) => projection.agent_status?.[id] === 'skipped';
 
   if (!projection.registry_record) {
     missing.push('registry_record');
@@ -22,15 +26,15 @@ function checkCompleteness(projection = {}) {
     missing.push('ubo_list_empty');
   }
 
-  if (!projection.screening_results) {
+  if (!projection.screening_results && !skipped('screening')) {
     missing.push('screening_results');
   }
 
-  if (projection.risk_score === null || projection.risk_score === undefined) {
+  if ((projection.risk_score === null || projection.risk_score === undefined) && !skipped('risk-assessment')) {
     missing.push('risk_score');
   }
 
-  if (!projection.risk_narrative || String(projection.risk_narrative).trim() === '') {
+  if ((!projection.risk_narrative || String(projection.risk_narrative).trim() === '') && !skipped('risk-assessment')) {
     missing.push('risk_narrative');
   }
 

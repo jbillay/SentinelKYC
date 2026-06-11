@@ -6,10 +6,12 @@ import { useRiskMatrix } from '../composables/useRiskMatrix.js'
 import { useAuthStore } from '../stores/auth.js'
 import DataModelTab from '../components/DataModelTab.vue'
 import ProcessTab from '../components/ProcessTab.vue'
+import AgentsPanel from '../components/AgentsPanel.vue'
 
 const TABS = [
   { id: 'account', label: 'My account' },
   { id: 'general', label: 'General' },
+  { id: 'agents', label: 'Agents' },
   { id: 'screening', label: 'Screening' },
   { id: 'risk-matrix', label: 'Risk matrix' },
   { id: 'prompts', label: 'Prompts' },
@@ -24,7 +26,7 @@ const TABS = [
 const route = useRoute()
 const tab = ref('general')
 
-const HASH_TAB = { '#risk-matrix': 'risk-matrix', '#account': 'account' }
+const HASH_TAB = { '#risk-matrix': 'risk-matrix', '#account': 'account', '#agents': 'agents' }
 
 onMounted(() => {
   const t = HASH_TAB[route.hash]
@@ -529,6 +531,8 @@ async function onChangePassword() {
         <button type="button" class="btn btn--primary">Save changes</button>
       </div>
     </section>
+
+    <AgentsPanel v-if="tab === 'agents'" id="agents" />
 
     <section v-if="tab === 'screening'" class="sheet">
       <div class="sheet-head-row">

@@ -95,6 +95,9 @@ function projectCase(state = {}) {
     kycCard: state.kycCard ?? null,
     riskAssessment: state.riskAssessment ?? null,
     documents,
+    // Phase 2 — which agents were disabled for this run. Checks treat a
+    // skipped agent's missing output as "not evaluated", not as a failure.
+    agent_status: state.agentStatus ?? {},
   };
 }
 

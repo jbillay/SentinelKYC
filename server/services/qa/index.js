@@ -21,11 +21,18 @@ function evaluateQa({ state, matrix } = {}) {
 
   const passed = completeness.passed && consistency.passed;
   const tier = state?.riskAssessment?.tier ?? null;
+  // Phase 2 — agents disabled for this run (seeded by runDispatch). Skipped
+  // screening/risk force standard review inside route(); the list is also
+  // surfaced on the qaResult so the UI can explain the routing.
+  const skippedAgents = Object.entries(state?.agentStatus || {})
+    .filter(([, status]) => status === 'skipped')
+    .map(([id]) => id);
   const routing = route({
     passed,
     tier,
     completenessMissing: completeness.missing,
     consistencyIssues: consistency.issues,
+    skippedAgents,
   });
 
   const highlightedIssues = buildHighlightedIssues({
@@ -42,6 +49,7 @@ function evaluateQa({ state, matrix } = {}) {
     highlightedIssues,
     qaSummary: routing.qaSummary,
     tier,
+    ...(skippedAgents.length ? { skippedAgents } : {}),
     evaluatedAt: new Date().toISOString(),
   };
 }

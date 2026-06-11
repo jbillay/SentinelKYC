@@ -23,6 +23,9 @@ function isDissolutionRelated(extracted) {
 
 function checkConsistency(projection = {}) {
   const issues = [];
+  // Phase 2 — skipped agents: their cross-checks are "not evaluated".
+  const screeningSkipped = projection.agent_status?.screening === 'skipped';
+  const riskSkipped = projection.agent_status?.['risk-assessment'] === 'skipped';
 
   // 1. ubo_not_screened — any UBO not present in screening_results.perSubject.
   // Match by partyId first (the canonical post-resolver key — robust against
@@ -41,7 +44,7 @@ function checkConsistency(projection = {}) {
       .filter(Boolean),
   );
   const missingSubjects = [];
-  for (const ubo of projection.ubo_list || []) {
+  for (const ubo of screeningSkipped ? [] : projection.ubo_list || []) {
     const hasPartyMatch = ubo?.partyId && screenedPartyIds.has(ubo.partyId);
     const hasNameMatch = ubo?.normalizedName && screenedNames.has(ubo.normalizedName);
     if (hasPartyMatch || hasNameMatch) continue;
@@ -62,7 +65,9 @@ function checkConsistency(projection = {}) {
   // 2. tier_too_low_for_sanction_hit — confirmed sanctions hits must force
   //    tier=High via the screeningHighOverride knockout. If they don't, the
   //    knockout configuration is broken or the screening report is stale.
-  if (confirmedHits > 0 && tier !== 'High') {
+  //    Not evaluated when risk was skipped (there is no tier to contradict;
+  //    routing already forces standard review for that run).
+  if (confirmedHits > 0 && tier !== 'High' && !riskSkipped) {
     issues.push({
       code: 'tier_too_low_for_sanction_hit',
       message: `Confirmed sanctions hit(s) present but risk tier is ${tier ?? 'unknown'} (expected High)`,

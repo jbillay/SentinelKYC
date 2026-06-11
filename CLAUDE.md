@@ -17,7 +17,7 @@ UK company KYC proof-of-concept. The user searches Companies House by name (or c
 - **Name matching**: `fastest-levenshtein`, `double-metaphone`, Postgres `pg_trgm` (trigram GIN) + `fuzzystrmatch` (phonetic).
 - **Sanctions parse**: `fast-xml-parser` (OFAC), `papaparse` (HMT).
 - **Persistence**:
-  - Postgres (via `pg` + `drizzle-orm`) — dossiers, runs, decision fragments, prompt registry, sanctions lists/entries, screening hits/evaluations, dossier-level screening overrides, screening config singleton, risk matrix versions, QA results, **party master (8 tables)**, **users (auth)** + `session` (connect-pg-simple), **`run_events` (durable cross-process SSE channel, R2)**. Migrations in `server/db/migrations` (`0000`–`0024`) — **hand-written SQL; never run `drizzle-kit generate`** (removed from the repo — snapshots are stale by design, see `db/SETUP.md`). pg-boss manages its own `pgboss` schema (auto-created on `start()`, not a hand-written migration).
+  - Postgres (via `pg` + `drizzle-orm`) — dossiers, runs, decision fragments, prompt registry, sanctions lists/entries, screening hits/evaluations, dossier-level screening overrides, screening config singleton, risk matrix versions, QA results, **party master (8 tables)**, **users (auth)** + `session` (connect-pg-simple), **`run_events` (durable cross-process SSE channel, R2)**, **agent config registry + config audit (v0.1 Phase 1)**. Migrations in `server/db/migrations` (`0000`–`0025`) — **hand-written SQL; never run `drizzle-kit generate`** (removed from the repo — snapshots are stale by design, see `db/SETUP.md`). **A new migration ALSO needs an entry in `migrations/meta/_journal.json`** (idx, version "7", increasing `when`, tag = filename sans .sql) or the drizzle runner silently skips it. pg-boss manages its own `pgboss` schema (auto-created on `start()`, not a hand-written migration).
   - **Everything the server writes at runtime lives under `server/var/`** (override root with `DATA_DIR`; see `lib/dataDirs.js`):
     - `var/cache/dev-cache.db` — HTTP response cache (keyed by URL) + KV cache (OCR by file hash, country normalization, adverse-media by name+ISO-week). `better-sqlite3`. Clearable: `npm run var:clean`.
     - `var/checkpoints/graph-checkpoints.db` — LangGraph `SqliteSaver` thread checkpoints (one row per thread step, used to resume after `interrupt()`). NOT cleared by `var:clean` (would strand paused runs); reaped at boot for runs terminal > `CHECKPOINT_RETENTION_DAYS` (default 7) — also `npm run checkpoints:reap`.
@@ -31,9 +31,13 @@ server/
   index.js                 Composition root: middleware, route registration, boot reapers, LLM probe; starts pg-boss + run_events bus in queue mode
   worker.js                R2 worker entrypoint — pg-boss subscriber that drives runGraph (queue mode); NotifySink + boot reconciliation
   sse/runtime.js           RunRegistry (+ settable EventSink) + SSE fan-out + write-through persistence + run lifecycle/GC
+  agents/
+    defs.js                Six agent definitions — id, required, Zod config schema, defaults, UI fields, io metadata (pure, no node refs)
+    config.js              Agent-config façade: cached load, validate+save (versioned), secrets encrypt/mask, enabledMap, seed
   graph/
-    state.js               Zod state schema (~25 channels, the contract) + concat-reducer arrays
-    build.js               Two StateGraphs (full + screening-only) + SqliteSaver checkpointer
+    state.js               Zod state schema (~25 channels, the contract) + concat-reducer arrays + agentStatus snapshot
+    assemble.js            Graph assembler — full + screening presets parameterized by the enabled-agent set
+    build.js               Compiles assemblies against the shared SqliteSaver; caches per enabled-set signature; getGraph(key)
     fragments.js           withFragment() wrapper — timing, __fragment/__fragments → decision_fragments, error capture
     nodes/                 gatherInput, searchCh, entityResolution, awaitConfirmation, fetchApis,
                            selectDocuments, downloadDocuments, processDocuments, synthesizeCard,
@@ -42,7 +46,7 @@ server/
                                       screenAdverseMedia, evaluateAdverseMedia, compileScreeningReport}
     extractors/            one per filing category (confirmationStatement, accounts, incorporation):
                            { schema, getPrompt(), ocrPolicy }
-  routes/                  runs, dossiers, screening, risk, qa, decision, prompts, documents, health, meta, parties
+  routes/                  runs, dossiers, screening, risk, qa, decision, prompts, documents, health, meta, parties, agents
                            (each exports register(app[, deps]); index.js wires them)
   services/
     ch.js                  Companies House client (cache, SSRF allowlist, secret redaction); downloadDocumentToFile + getDocumentBinary
@@ -58,6 +62,7 @@ server/
                            LLM judgement cores — shared by the graph nodes AND the R3 eval harness)
     auth/                  passwords.js (bcryptjs), session.js (express-session + connect-pg-simple),
                            index.js (authMiddleware, requireAuth, requireRole, csrfProtection, readUserId)
+    config/                store.js (dumb versioned agent-config persistence + config_audit), secrets.js (AES-256-GCM at-rest encryption, CONFIG_ENCRYPTION_KEY)
     queue.js               R2 — pg-boss singleton + single `run` queue + isQueueMode/enqueueRun (queue mode only)
     runDispatch.js         R2 — inline-vs-queue dispatch + executeRunJob (the one kind→runGraph mapping, shared by inline + worker)
     eventSink.js           R2 — InMemorySink (buffer+res) / NotifySink (run_events + NOTIFY); registry delegates pushEvent
@@ -80,7 +85,7 @@ server/
   eval/                    R3 eval harness — golden/ corpus, labels.schema.js, score.js (pure), run.js (CLI), README.md
   scripts/                 ~30 *-smoke.js manual tests + smoke-all.js aggregator + refresh-sanctions.js + seed-users.js + var-clean + checkpoint-reap
   lib/dataDirs.js          Runtime data root (var/{cache,checkpoints,evidence}); DATA_DIR override
-  .env                     CH_API_KEY, OLLAMA_HOST, PORT, DATABASE_URL, LLM_* provider overrides, GDELT_* overrides
+  .env                     CH_API_KEY, OLLAMA_HOST, PORT, DATABASE_URL, LLM_* provider overrides, GDELT_* overrides, CONFIG_ENCRYPTION_KEY
 web/
   src/
     main.js                createApp + Pinia + router + tokens.css/components.css
@@ -89,11 +94,11 @@ web/
     layouts/AppShell.vue   Sidebar + topbar shell + Ollama health banner
     pages/                 SignInPage, DossiersPage, SearchPage, RunPage, DossierViewPage, RunDetailPage,
                            RunDiffPage, GraphPage, WatchlistPage, PartiesPage, PartyDetailPage, AuditLogPage, SettingsPage
-    components/            SearchForm, CandidateDisambiguation, KycCard, ShareholderGraph, PartyGraph, PartyIdentityCard,
+    components/            SearchForm, CandidateDisambiguation, KycCard, ShareholderGraph, PartyGraph, PartyIdentityCard, AgentsPanel,
                            AgentTrail, LiveEvidenceCard, ProcessTab, DataModelTab, ScreeningTab, ScreeningEvidenceCard,
                            ScreeningHitPanel, RiskAssessmentCard, QaNarrative, FinalDecisionPanel,
                            FinalDecisionPanelReadOnly, CountryFlag, NotFound, layout/{SideNav,TopBar,HealthIndicator}
-    composables/           useDossier(s), useRun, useRunDetail, useRunPair, useRefresh, usePrompts, useScreening,
+    composables/           useDossier(s), useRun, useRunDetail, useRunPair, useRefresh, usePrompts, useScreening, useAgents,
                            useRiskMatrix, useRiskAssessment, useDecision, useParties, useParty, usePartyReviewQueue
     stores/               agent (SSE + per-thread reactive slice), dossier, health, decision, auth
     lib/                  decisionSchema.js, partyMatchSchema.js, countries.js
@@ -136,9 +141,20 @@ ollama pull glm-ocr
 ollama pull llama3.1:8b
 ```
 
+## Agent configuration & toggles (v0.1 Phases 1+2)
+
+The six pipeline agents (`entity-resolution`, `document-manager`, `ubo-structure`, `screening`, `risk-assessment`, `qa`) are defined in `agents/defs.js` and configured at runtime via Settings → Agents (`/settings#agents`), no restart:
+
+- **Versioned config** — `agent_config_versions` / `agent_config_active` (migration 0025, mirrors the prompt registry); every save creates+activates a new version and writes an immutable `config_audit` row. `agents/config.js#loadAgentConfig(id)` is the cached read path; saving invalidates it AND the compiled-graph cache.
+- **Knobs migrated from env/constants**: ER auto-match threshold/lead/candidate count; document-manager OCR page cap (**deactivatable** — `pageCapEnabled:false` lifts the per-doc limit) + page selection; ubo corroboration gate; screening adverse-media toggle + GDELT timespan. Env vars (`OCR_PAGE_SELECTION`, `PARTY_REQUIRE_CORROBORATION`, `GDELT_TIMESPAN`), when explicitly set, still win — legacy escape hatch + smoke compatibility.
+- **Secrets at rest** — manifest fields flagged `secret:true` are AES-256-GCM-encrypted (`services/config/secrets.js`, key = `CONFIG_ENCRYPTION_KEY` in .env), masked in API responses (`{set:bool}`), `'__unchanged__'` sentinel keeps the stored value on save. No secret fields exist yet (Phase 3 vendor keys will use this).
+- **Enable/disable** — `graph/assemble.js` builds the topology from the enabled set (disabled agent ⇒ its node segment dropped, spine re-stitched); `graph/build.js#getGraph(key)` compiles+caches per signature. `entity-resolution` is `required` (cannot be disabled in v0.1). The dispatch-time enabled set is frozen into `state.agentStatus` (`{agentId:'skipped'}`) by `runDispatch#executeRunJob` — consumers read the state snapshot, never live config.
+- **Degraded semantics (fail toward human review)** — QA checks treat a skipped agent's missing output as *not evaluated* (not a completeness failure); routing **never auto-approves** when screening or risk was skipped; QA disabled ⇒ `qa_skipped` stamp node routes `standard_review` with no narrative and no `auto_finalize` path.
+- **Caveat (accepted)**: a run paused at an interrupt resumes on the topology of the *current* enabled set; `state.agentStatus` keeps the dispatch-time snapshot.
+
 ## Architecture
 
-A single LangGraph StateGraph with **two** human-in-the-loop interrupts (entity selection, then final decision):
+One assembled LangGraph topology (see above) with **two** human-in-the-loop interrupts (entity selection, then final decision). All-agents-enabled shape:
 
 ```
 START → gather_input → search_ch → entity_resolution
@@ -220,7 +236,9 @@ Routes live in `server/routes/*` (each `register(app[, deps])`, wired in `index.
 
 **Prompts** — `GET /api/prompts`, `GET /api/prompts/:key`, `GET /api/prompts/:key/versions/:id`, `POST /api/prompts/:key/versions`, `POST /api/prompts/:key/active`.
 
-**Health** — `GET /api/health` → cached LLM-provider probe refreshed every 15s; UI surfaces it as a banner.
+**Health** — `GET /api/health` → cached LLM-provider probe refreshed every 15s + per-agent enablement (`agents: [{id,name,required,enabled}]`); UI surfaces it as a banner.
+
+**Agents** — `GET /api/agents` (list: definition + masked config + version), `GET /api/agents/:id` (detail + versions), `POST /api/agents/:id/config` `{ body, notes }` (admin; validate → new version → activate → audit; 400 `{ error:'invalid_config', validationErrors }`), `POST /api/agents/:id/enabled` `{ enabled }` (admin; 400 `{ error:'agent_required' }` for required agents).
 
 **Screening**
 - `POST /api/dossiers/:cn/rescreen` → screening-only thread (seeds `screeningOnlyGraph`).
@@ -260,7 +278,7 @@ Routes live in `server/routes/*` (each `register(app[, deps])`, wired in `index.
 - `/dossier/:cn/graph` (+ `/graph/current`) — full-screen Cytoscape view.
 - `/parties` — party master list; `/party/:partyId` — party detail (identity, links, cross-dossier screening + graph).
 - `/watchlist` — watched parties (real `GET /api/parties/watchlist` data) + party review queue tabs.
-- `/audit`, `/settings` (Settings hosts screening config, the prompt editor, and the risk-matrix editor; deep-link the risk matrix via `/settings#risk-matrix`).
+- `/audit`, `/settings` (Settings hosts the **Agents panel** (`#agents` — enable/disable + per-agent config), screening config, the prompt editor, and the risk-matrix editor; deep-link the risk matrix via `/settings#risk-matrix`).
 
 ## Party Master
 

@@ -19,7 +19,7 @@
 // just enqueues a durable job (the worker drives it), which is exactly right.
 
 const repo = require('../db/repo');
-const { compiledGraph, compiledScreeningOnlyGraph } = require('../graph/build');
+const { getGraph } = require('../graph/build');
 const { dispatchResume } = require('./runDispatch');
 const { log } = require('./log');
 
@@ -77,7 +77,7 @@ async function reconcileOwedResumes() {
         fragmentId: fragment.id,
       };
       const graphKey = r.trigger === 'rescreen' ? 'screening' : 'full';
-      const graph = graphKey === 'screening' ? compiledScreeningOnlyGraph : compiledGraph;
+      const { graph } = await getGraph(graphKey);
 
       if (await hasCheckpoint(graph, r.threadId)) {
         log.warn(`[resumeReconciler] replaying owed resume run=${r.runId} thread=${r.threadId} action=${action}`);

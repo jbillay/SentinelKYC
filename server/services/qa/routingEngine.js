@@ -11,8 +11,21 @@
 // incorporates screening knockouts (a confirmed sanctions hit forces
 // tier=High via screeningHighOverride), whereas the raw score does not.
 
-function route({ passed, tier, completenessMissing = [], consistencyIssues = [] }) {
+// Agents whose absence makes auto-approval indefensible: with screening or
+// risk disabled the case was never fully assessed, so it must reach a human
+// regardless of how clean the remaining signals look (fail toward review).
+const REVIEW_FORCING_AGENTS = ['screening', 'risk-assessment'];
+
+function route({ passed, tier, completenessMissing = [], consistencyIssues = [], skippedAgents = [] }) {
   const normalizedTier = typeof tier === 'string' ? tier : null;
+
+  const forcing = REVIEW_FORCING_AGENTS.filter((a) => skippedAgents.includes(a));
+  if (forcing.length > 0) {
+    return {
+      caseStatus: 'standard_review',
+      qaSummary: `Assessment incomplete: ${forcing.join(' + ')} agent(s) disabled for this run → standard review (auto-approval requires a full assessment).`,
+    };
+  }
 
   if (!passed) {
     return {
@@ -50,4 +63,4 @@ function route({ passed, tier, completenessMissing = [], consistencyIssues = [] 
   };
 }
 
-module.exports = { route };
+module.exports = { route, REVIEW_FORCING_AGENTS };

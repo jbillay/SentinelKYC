@@ -3,7 +3,7 @@
 // writes. See server/services/meta.js for the introspection logic.
 const meta = require('../services/meta');
 const metrics = require('../services/metrics');
-const { compiledGraph, compiledScreeningOnlyGraph } = require('../graph/build');
+const { getGraph } = require('../graph/build');
 
 function register(app) {
   // GET /api/metrics — R7 in-process counters/histograms as JSON. Sits behind
@@ -30,11 +30,14 @@ function register(app) {
   // → { graphs: [{ label, nodes[], edges[], mermaid }] }
   app.get('/api/meta/process', async (_req, res, next) => {
     try {
+      // Live topology: the Process tab reflects the CURRENT enabled-agent set
+      // (Phase 2 assembler), not the all-enabled default.
+      const [main, screeningOnly] = await Promise.all([getGraph('full'), getGraph('screening')]);
       const graphs = [
-        meta.introspectGraph(compiledGraph, { label: 'main' }),
-        meta.introspectGraph(compiledScreeningOnlyGraph, { label: 'screening_only' }),
+        meta.introspectGraph(main.graph, { label: 'main' }),
+        meta.introspectGraph(screeningOnly.graph, { label: 'screening_only' }),
       ];
-      res.json({ graphs });
+      res.json({ graphs, enabledAgents: main.enabled });
     } catch (err) {
       next(err);
     }
