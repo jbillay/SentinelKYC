@@ -16,6 +16,7 @@ events.setMaxListeners(50);
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const pinoHttp = require('pino-http');
 
 const { setProcessKind } = require('./services/log');
@@ -50,9 +51,16 @@ const healthRoutes = require('./routes/health');
 const metaRoutes = require('./routes/meta');
 const partiesRoutes = require('./routes/parties');
 const agentsRoutes = require('./routes/agents');
+const docsRoutes = require('./routes/docs');
 const { seedAgentConfigs } = require('./agents/config');
 
 const app = express();
+
+// Security headers (Phase 4). CSP is off: this process serves JSON plus the
+// self-contained /api/docs page (which loads Swagger UI from a CDN); the SPA
+// itself is served by Vite, not Express. COEP off so the docs page can load
+// those CDN assets.
+app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 
 // CORS pinned to the Vite dev origin (and same-origin / non-browser callers
 // via the no-Origin allowance). See CODE_REVIEW §4.2.
@@ -121,6 +129,7 @@ healthRoutes.register(app);
 metaRoutes.register(app);
 partiesRoutes.register(app, { readUserId });
 agentsRoutes.register(app);
+docsRoutes.register(app);
 
 // Global error handler. Routes that catch and re-throw via next(err) land here,
 // as do unhandled rejections inside express middleware. Map typed errors to

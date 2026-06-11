@@ -46,8 +46,9 @@ server/
                                       screenAdverseMedia, evaluateAdverseMedia, compileScreeningReport}
     extractors/            one per filing category (confirmationStatement, accounts, incorporation):
                            { schema, getPrompt(), ocrPolicy }
-  routes/                  runs, dossiers, screening, risk, qa, decision, prompts, documents, health, meta, parties, agents
+  routes/                  runs, dossiers, screening, risk, qa, decision, prompts, documents, health, meta, parties, agents, docs
                            (each exports register(app[, deps]); index.js wires them)
+  openapi.js               Hand-maintained OpenAPI 3 spec — update in the same PR as any route change; served at /api/docs (Swagger UI)
   services/
     ch.js                  Companies House client (cache, SSRF allowlist, secret redaction); downloadDocumentToFile + getDocumentBinary
     llm/                   index.js (cache+retry, prompt load; exports ocrPage/extractStructured/checkProviders),
@@ -63,6 +64,8 @@ server/
     auth/                  passwords.js (bcryptjs), session.js (express-session + connect-pg-simple),
                            index.js (authMiddleware, requireAuth, requireRole, csrfProtection, readUserId)
     config/                store.js (dumb versioned agent-config persistence + config_audit), secrets.js (AES-256-GCM at-rest encryption, CONFIG_ENCRYPTION_KEY)
+    registry/              Vendor data port (Phase 3): index.js (capability-keyed composition), merge.js (pure
+                           gap-fill merge + _vendorAttribution), providers/{companiesHouse (base), mock (enrich demo)}
     queue.js               R2 — pg-boss singleton + single `run` queue + isQueueMode/enqueueRun (queue mode only)
     runDispatch.js         R2 — inline-vs-queue dispatch + executeRunJob (the one kind→runGraph mapping, shared by inline + worker)
     eventSink.js           R2 — InMemorySink (buffer+res) / NotifySink (run_events + NOTIFY); registry delegates pushEvent
@@ -238,6 +241,8 @@ Routes live in `server/routes/*` (each `register(app[, deps])`, wired in `index.
 
 **Health** — `GET /api/health` → cached LLM-provider probe refreshed every 15s + per-agent enablement (`agents: [{id,name,required,enabled}]`); UI surfaces it as a banner.
 
+**Docs** — `GET /api/docs` → Swagger UI (signed-in users; assets from unpkg CDN); `GET /api/docs/openapi.json` → the spec (`server/openapi.js`, hand-maintained — **update it in the same PR as any route change**).
+
 **Agents** — `GET /api/agents` (list: definition + masked config + version), `GET /api/agents/:id` (detail + versions), `POST /api/agents/:id/config` `{ body, notes }` (admin; validate → new version → activate → audit; 400 `{ error:'invalid_config', validationErrors }`), `POST /api/agents/:id/enabled` `{ enabled }` (admin; 400 `{ error:'agent_required' }` for required agents).
 
 **Screening**
@@ -374,6 +379,10 @@ old spoofable `x-user-id` model. Design rationale in `docs/archive/P0_IMPLEMENTA
 - **Dev bypass**: `AUTH_DEV_BYPASS=true` trusts `x-user-id` as an admin actor (skips CSRF) — local engine/smoke use only, **off by default**.
 - **Smoke**: `npm run auth:smoke` boots the app and asserts login/CSRF/role-guard/logout (14 checks).
 
+## Vendor registry (Phase 3)
+
+Registry data flows through the **capability-keyed port** in `services/registry/` — graph nodes import the registry, never `services/ch.js` directly. Capabilities: `search / profile / officers / ownership / filings / documents`. **Companies House is the always-on BASE provider** (free; its response shapes are the canonical wire format — vendors adapt TO them). **Enrichment vendors** (configured per Settings → Agents → Entity resolution → `enrichmentVendors`) layer on top: they only fill fields the merged record lacks (top-level, base always wins) and every contributed field is recorded in `_vendorAttribution` (field → vendorId), surfaced on the `fetch_apis` fragment for the audit trail. Enrichment is best-effort (a vendor outage never fails the base fetch); a CH-only record comes out byte-identical. v1 ships the fixture-backed `mock` vendor (disabled by default) proving the Orbis-class slot; adding a real vendor = one file under `providers/` + its id in the config enum (+ secret-flagged credential fields, encrypted at rest). Documents stay CH-only (the one document-capable provider); `routes/documents.js` deliberately keeps importing `services/ch.js` (CH Document API proxy).
+
 ## Companies House notes
 
 Two separate APIs, same API key:
@@ -429,7 +438,7 @@ The reasoning LLM is *not* used as a tie-breaker — the deterministic path is t
 - No iXBRL parsing — PDFs only.
 - No retry-with-backoff infra beyond the one JSON-retry on extraction + GDELT retries.
 - No token-level streaming to the UI — node-level SSE events are sufficient.
-- Testing has three tiers, each with a job: **Vitest unit tests** (`server/test/*.test.mjs`, pure engines only — qa, risk, sanctions matching, screening report, canonical, decision schema; v0.1 target 80% coverage on these), the `server/scripts/*-smoke.js` scripts (integration; tiered by smoke-all.js), and the **R3 eval harness** (`server/eval/`) — a deliberately small, frozen golden-set quality scorer. Don't unit-test graph nodes / routes / DB modules (that's the smoke tier's job); keep the golden corpus small (~3–10 cases per type).
+- Testing has three tiers, each with a job: **Vitest unit tests** (`server/test/*.test.mjs`, pure engines only — qa, risk, sanctions matching, screening report, canonical, registry merge, secrets, decision schema; **coverage thresholds enforced in CI** — see `vitest.config.mjs`, ~80% on the pure-engine include list, ratchet upward), the `server/scripts/*-smoke.js` scripts (integration; tiered by smoke-all.js; `auth:smoke` also runs in the CI db job), and the **R3 eval harness** (`server/eval/`) — a deliberately small, frozen golden-set quality scorer (LLM-dependent: local/nightly only, never a PR gate). Don't unit-test graph nodes / routes / DB modules (that's the smoke tier's job); keep the golden corpus small (~3–10 cases per type).
 - **Screening v1 explicitly excludes**: PEP screening, recursive ownership-chain walking, authorized signatories, historical sanctions list versioning / re-screen-as-of-date, LLM alias generation, multilingual name matching beyond Latin transliteration, screening in the run-diff view. See `docs/architecture/SCREENING_PLAN.md` §11.
 
 ## Hard environment constraints
