@@ -6,7 +6,7 @@
 <title>SentinelKYC — Agentic KYC with a complete audit trail</title>
 <meta name="description" content="SentinelKYC resolves UK companies, reads their filings, screens every party against sanctions and adverse media, scores risk deterministically — and logs every decision so a reviewer can audit, override, and diff each step." />
 <meta property="og:title" content="SentinelKYC — Agentic KYC with a complete audit trail" />
-<meta property="og:description" content="Open-source agentic KYC: entity resolution, document intelligence, sanctions and adverse-media screening, deterministic risk, QA routing — every decision inspectable and overridable." />
+<meta property="og:description" content="Agentic KYC: entity resolution, document intelligence, sanctions and adverse-media screening, deterministic risk, QA routing — every decision inspectable and overridable." />
 <meta property="og:type" content="website" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -227,23 +227,48 @@
     width: 12px; height: 12px; border-radius: 99px; background: #fff;
   }
 
-  /* pipeline */
+  /* pipeline — editorial stepper on a rail */
   .pipeline-sec { background: var(--paper-sunken); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-  .pipe { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding-bottom: 8px; }
-  .pipe-step { min-width: 168px; flex: 1; position: relative; padding: 22px 20px 22px 24px; background: var(--surface); border: 1px solid var(--line); border-left: none; }
-  .pipe-step:first-child { border-left: 1px solid var(--line); border-radius: 8px 0 0 8px; }
-  .pipe-step:last-child { border-radius: 0 8px 8px 0; }
-  .pipe-step .k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--amber); }
-  .pipe-step h4 { margin: 6px 0 4px; font-size: 15px; font-weight: 700; }
-  .pipe-step p { margin: 0; font-size: 13px; color: var(--ink-3); line-height: 1.5; }
-  .pipe-step::after {
-    content: '→'; position: absolute; right: -9px; top: 50%; transform: translateY(-50%);
-    z-index: 2; color: var(--ink-3); background: var(--paper-sunken); font-size: 13px;
+  .pipe {
+    position: relative;
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 36px;
   }
-  .pipe-step:last-child::after { content: none; }
-  .pipe-step--human { background: #FBF1E1; border-color: #ECD9B8; }
-  .pipe-legend { margin-top: 18px; font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); }
-  .pipe-legend .sw { display: inline-block; width: 10px; height: 10px; background: #FBF1E1; border: 1px solid #ECD9B8; margin-right: 6px; vertical-align: baseline; }
+  .pipe::before {
+    content: '';
+    position: absolute; top: 22px; left: 16px; right: 16px; height: 1px;
+    background: repeating-linear-gradient(90deg, var(--line-strong) 0 6px, transparent 6px 12px);
+  }
+  .pipe-step { position: relative; padding-top: 58px; }
+  .pipe-step .node {
+    position: absolute; top: 8px; left: 0;
+    width: 30px; height: 30px; border-radius: 99px;
+    background: var(--surface); border: 1.5px solid var(--line-strong);
+    display: grid; place-items: center;
+    font-family: var(--mono); font-size: 12px; color: var(--ink-2);
+    transition: transform 200ms var(--ease), box-shadow 200ms var(--ease);
+  }
+  .pipe-step:hover .node { transform: scale(1.12); }
+  .pipe-step .k {
+    display: block;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px;
+  }
+  .pipe-step h4 { margin: 0 0 6px; font-size: 15.5px; font-weight: 700; letter-spacing: -0.005em; }
+  .pipe-step p { margin: 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.55; }
+  .pipe-step--human .node {
+    background: var(--amber-bright); border-color: var(--amber-bright);
+    color: var(--navy-ink); font-weight: 600;
+    box-shadow: 0 0 0 6px rgba(232, 163, 61, 0.16);
+  }
+  .pipe-step--human .k { color: var(--amber); }
+  .pipe-tag {
+    display: inline-block; margin-top: 10px;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--amber); background: rgba(232, 163, 61, 0.12);
+    border: 1px solid rgba(180, 83, 9, 0.3);
+    padding: 3px 9px; border-radius: 99px;
+  }
+  .pipe-legend { margin-top: 40px; font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); max-width: 76ch; }
 
   /* audit section */
   .audit-grid { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); gap: 64px; align-items: start; }
@@ -278,7 +303,7 @@
   .frag .fs { font-size: 13.5px; color: var(--ink); }
   .frag--override { background: #FBF1E1; }
 
-  /* open source strip */
+  /* deployment strip */
   .oss { background: var(--navy-ink); color: #fff; }
   .oss-in { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 56px; align-items: center; padding: 72px 0; }
   .oss h2 { font-family: var(--display); font-weight: 550; font-size: clamp(26px, 3vw, 36px); line-height: 1.15; margin: 12px 0 14px; letter-spacing: -0.01em; }
@@ -328,6 +353,14 @@
     .top nav { display: none; }
     .fragcard { position: static; }
     section { padding: 64px 0; }
+    /* pipeline goes vertical: rail down the left */
+    .pipe { grid-template-columns: 1fr; gap: 30px; }
+    .pipe::before {
+      top: 18px; bottom: 12px; left: 14px; right: auto; width: 1px; height: auto;
+      background: repeating-linear-gradient(180deg, var(--line-strong) 0 6px, transparent 6px 12px);
+    }
+    .pipe-step { padding-top: 0; padding-left: 52px; }
+    .pipe-step .node { top: 0; }
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
@@ -347,7 +380,7 @@
       <a href="#agents">Product</a>
       <a href="#pipeline">How it works</a>
       <a href="#audit">Audit trail</a>
-      <a href="#opensource">Open source</a>
+      <a href="#deployment">Deployment</a>
       <a href="#contact">Contact</a>
     </nav>
     <a class="btn btn--amber" href="#contact">Request a walkthrough</a>
@@ -367,10 +400,10 @@
         auditors can replay.
       </p>
       <div class="hero-ctas">
-        <a class="btn btn--amber" href="https://github.com/jbillay/SentinelKYC" target="_blank" rel="noopener">View on GitHub</a>
+        <a class="btn btn--amber" href="#contact">Request a walkthrough</a>
         <a class="btn btn--ghost" href="#pipeline">See how it works</a>
       </div>
-      <p class="hero-note">Open source · runs on your own infrastructure · local-first LLMs supported</p>
+      <p class="hero-note">runs on your own infrastructure · local-first LLMs supported · UK registry coverage</p>
     </div>
 
     <div class="trail" aria-hidden="true">
@@ -423,14 +456,14 @@
       <p>One run takes a name or company number and produces a complete dossier: identity, officers, owners, financials, screening outcomes, a risk score with its receipt, and a recommendation — paused for a human exactly twice.</p>
     </div>
     <div class="pipe reveal">
-      <div class="pipe-step pipe-step--human"><span class="k">pause 1</span><h4>Confirm entity</h4><p>Analyst confirms the matched company.</p></div>
-      <div class="pipe-step"><span class="k">fetch</span><h4>Registry + filings</h4><p>Profile, officers, PSC, filing history, PDFs.</p></div>
-      <div class="pipe-step"><span class="k">extract</span><h4>Read documents</h4><p>Text-first, OCR where needed, structured output.</p></div>
-      <div class="pipe-step"><span class="k">screen</span><h4>Every party</h4><p>Sanctions + adverse media on all subjects.</p></div>
-      <div class="pipe-step"><span class="k">score</span><h4>Risk + QA</h4><p>Deterministic score, knockouts, QA routing.</p></div>
-      <div class="pipe-step pipe-step--human"><span class="k">pause 2</span><h4>Human decision</h4><p>Approve, reject, escalate, or request info.</p></div>
+      <div class="pipe-step pipe-step--human"><span class="node">01</span><span class="k">interrupt</span><h4>Confirm entity</h4><p>Analyst confirms the matched company.</p><span class="pipe-tag">human pause</span></div>
+      <div class="pipe-step"><span class="node">02</span><span class="k">fetch</span><h4>Registry + filings</h4><p>Profile, officers, PSC, filing history, PDFs.</p></div>
+      <div class="pipe-step"><span class="node">03</span><span class="k">extract</span><h4>Read documents</h4><p>Text-first, OCR where needed, structured output.</p></div>
+      <div class="pipe-step"><span class="node">04</span><span class="k">screen</span><h4>Every party</h4><p>Sanctions + adverse media on all subjects.</p></div>
+      <div class="pipe-step"><span class="node">05</span><span class="k">score</span><h4>Risk + QA</h4><p>Deterministic score, knockouts, QA routing.</p></div>
+      <div class="pipe-step pipe-step--human"><span class="node">06</span><span class="k">interrupt</span><h4>Human decision</h4><p>Approve, reject, escalate, or request info.</p><span class="pipe-tag">human pause</span></div>
     </div>
-    <p class="pipe-legend reveal"><span class="sw"></span>human-in-the-loop — the graph interrupts and waits; low-risk cases that pass QA auto-approve with a system signature.</p>
+    <p class="pipe-legend reveal">// amber markers are human-in-the-loop interrupts — the graph pauses and waits. low-risk cases that pass QA auto-approve with a system signature.</p>
   </div>
 </section>
 
@@ -460,19 +493,19 @@
   </div>
 </section>
 
-<section id="opensource" class="oss">
+<section id="deployment" class="oss">
   <div class="wrap oss-in">
     <div>
-      <span class="eyebrow">Open source · build in the open</span>
-      <h2>Your data stays yours. So does the pipeline.</h2>
-      <p>SentinelKYC is open source and runs on your own infrastructure — including fully local LLMs, so customer data never has to leave your network. Inspect the engine that scores your customers; it's all on GitHub.</p>
-      <a class="btn btn--amber" href="https://github.com/jbillay/SentinelKYC" target="_blank" rel="noopener">github.com/jbillay/SentinelKYC</a>
+      <span class="eyebrow">Deployment · data sovereignty</span>
+      <h2>Your customers' data never has to leave your network.</h2>
+      <p>SentinelKYC runs entirely on your own infrastructure — including the language models, which can run fully local. No customer PII shipped to third-party AI APIs, no screening history held by anyone but you. Built on boring, provable foundations your security team already knows.</p>
+      <a class="btn btn--amber" href="#contact">Talk deployment with us</a>
     </div>
     <div class="stack">
-      <span class="chip">Vue 3</span><span class="chip">Node.js</span><span class="chip">LangGraph</span>
-      <span class="chip">PostgreSQL</span><span class="chip">Ollama · local LLMs</span><span class="chip">NVIDIA NIM</span>
-      <span class="chip">OFAC SDN</span><span class="chip">UK HMT</span><span class="chip">Companies House API</span>
-      <span class="chip">GDELT adverse media</span><span class="chip">OpenAPI</span><span class="chip">Unlicense</span>
+      <span class="chip">Self-hosted</span><span class="chip">Local LLMs · Ollama</span><span class="chip">NVIDIA NIM</span>
+      <span class="chip">PostgreSQL</span><span class="chip">OFAC SDN</span><span class="chip">UK HMT</span>
+      <span class="chip">Companies House API</span><span class="chip">GDELT adverse media</span><span class="chip">OpenAPI</span>
+      <span class="chip">Role-based access</span><span class="chip">Encrypted secrets</span>
     </div>
   </div>
 </section>
@@ -509,13 +542,13 @@
         SentinelKYC
       </div>
       <p class="small" style="margin-top: 12px;">
-        SentinelKYC is software in active development (v0.1) and is provided as-is under the Unlicense.
+        SentinelKYC is software in active development (v0.1).
         It supports — and does not replace — your regulated KYC/AML obligations and professional judgement.
       </p>
     </div>
     <nav>
-      <a href="https://github.com/jbillay/SentinelKYC" target="_blank" rel="noopener">GitHub</a>
-      <a href="https://github.com/jbillay/SentinelKYC/tree/main/docs" target="_blank" rel="noopener">Documentation</a>
+      <a href="#agents">Product</a>
+      <a href="#audit">Audit trail</a>
       <a href="#contact">Contact</a>
     </nav>
   </div>
