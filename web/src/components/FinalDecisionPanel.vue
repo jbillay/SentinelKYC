@@ -441,7 +441,7 @@ watch(canRender, (v) => {
       @submit.prevent="onSubmitRequestInfo"
     >
       <h3 class="form-title">Request information</h3>
-      <details v-if="qaNarrative" class="narrative-summary">
+      <details v-if="qaNarrative" class="narrative-summary" open>
         <summary>QA recommendation narrative</summary>
         <QaNarrative :narrative="qaNarrative" :compact="true" />
       </details>
@@ -506,7 +506,7 @@ watch(canRender, (v) => {
     <!-- Approve confirm dialog -->
     <dialog ref="approveDialog" class="confirm-dialog">
       <h3 class="form-title">Approve case</h3>
-      <details v-if="qaNarrative" class="narrative-summary">
+      <details v-if="qaNarrative" class="narrative-summary" open>
         <summary>QA recommendation narrative</summary>
         <QaNarrative :narrative="qaNarrative" :compact="true" />
       </details>
