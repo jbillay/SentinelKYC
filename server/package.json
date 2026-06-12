@@ -52,7 +52,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "UNLICENSED",
   "type": "commonjs",
   "engines": {
     "node": ">=20.19.0"

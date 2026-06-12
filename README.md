@@ -60,4 +60,6 @@ See the [documentation index](docs/README.md). Highlights:
 
 ## License
 
-[The Unlicense](LICENSE) — public domain.
+**Proprietary — all rights reserved.** The source is publicly viewable for transparency and evaluation,
+but no rights are granted to use, copy, modify, or distribute it. See [LICENSE](LICENSE).
+For licensing inquiries, use the [contact form](https://jbillay.github.io/SentinelKYC/#contact).
