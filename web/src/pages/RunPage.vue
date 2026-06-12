@@ -51,7 +51,13 @@ const showEvidenceCard = computed(() => {
   return true
 })
 
+// Same idea for the screening card: it's a live view of the screening
+// branches, so it goes away once screening has wrapped up — either the
+// compile_screening_report fragment landed (the agent moved on to risk/QA)
+// or the run left the running phase (decision pause, done, cancelled, error).
 const showScreeningCard = computed(() => {
+  if (run.phase.value !== 'running') return false
+  if (run.fragments.value.some((f) => f.nodeId === 'compile_screening_report')) return false
   const sc = run.screening.value
   if (!sc) return false
   return sc.subjects.length > 0 || sc.hits.length > 0 || !!sc.currentSubjectId

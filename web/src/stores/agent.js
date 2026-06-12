@@ -41,7 +41,12 @@ function createScreeningSlice() {
     evaluations: [],      // [{ hitId, decision, llmScore, fragmentId }] from screening_hit_evaluated events
     currentSubjectId: null,
     currentList: null,    // 'ofac_sdn' | 'uk_hmt' | 'adverse_media'
-    lastEvents: [],       // rolling window of {kind, ts, ...} for the live feed (cap 5)
+    // Cumulative per-list progress: subjectId → true once a
+    // screening_subject_started event was seen for (subjectId, list).
+    // lastEvents is a capped rolling window, so counts must NOT be
+    // derived from it — that's what this map is for.
+    screenedByList: { ofac_sdn: {}, uk_hmt: {}, adverse_media: {} },
+    lastEvents: [],       // rolling window of {kind, ts, ...} for the live feed (cap 8)
   }
 }
 
@@ -165,6 +170,9 @@ export const useAgentStore = defineStore('agent', () => {
         const list = evt.listSource || evt.list || null
         sc.currentSubjectId = evt.subjectId || null
         sc.currentList = list || sc.currentList
+        if (list && sc.screenedByList[list] && evt.subjectId) {
+          sc.screenedByList[list][evt.subjectId] = true
+        }
         const exists = sc.subjects.find((s) => s.id === evt.subjectId)
         if (!exists && evt.subjectId) {
           sc.subjects.push({

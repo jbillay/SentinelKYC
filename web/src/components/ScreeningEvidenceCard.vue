@@ -3,7 +3,7 @@ import { computed } from 'vue'
 
 const props = defineProps({
   // Pass the agent store's screening slice directly:
-  //   { subjects, hits, evaluations, currentSubjectId, currentList, lastEvents }
+  //   { subjects, hits, evaluations, currentSubjectId, currentList, screenedByList, lastEvents }
   screening: { type: Object, required: true },
 })
 
@@ -16,21 +16,21 @@ const LIST_LABEL = {
 const totalSubjects = computed(() => props.screening.subjects.length)
 
 const subjectsByList = computed(() => {
-  // Per-list "subjects screened so far" — derived from `lastEvents` so the
-  // bar tracks the live SSE stream (a subject is "screened against list L"
-  // once we've seen a screening_subject_started event for (subjectId, L)).
-  const map = { ofac_sdn: new Set(), uk_hmt: new Set(), adverse_media: new Set() }
-  for (const ev of props.screening.lastEvents) {
-    if (ev.kind !== 'subject') continue
-    if (ev.list && map[ev.list] && ev.subjectId) map[ev.list].add(ev.subjectId)
+  // Per-list "subjects screened so far" — the store accumulates these from
+  // screening_subject_started events into `screenedByList` (cumulative, unlike
+  // `lastEvents` which is a capped rolling window for the live feed).
+  const src = props.screening.screenedByList || {}
+  return {
+    ofac_sdn: Object.keys(src.ofac_sdn || {}).length,
+    uk_hmt: Object.keys(src.uk_hmt || {}).length,
+    adverse_media: Object.keys(src.adverse_media || {}).length,
   }
-  return map
 })
 
 function progressPct(list) {
   const t = totalSubjects.value
   if (!t) return 0
-  const seen = subjectsByList.value[list]?.size || 0
+  const seen = subjectsByList.value[list] || 0
   return Math.min(100, Math.round((seen / t) * 100))
 }
 
@@ -110,7 +110,7 @@ function decisionTone(d) {
         <div v-for="list in ['ofac_sdn', 'uk_hmt', 'adverse_media']" :key="list" class="list-row">
           <div class="list-row-head">
             <span class="list-label">{{ LIST_LABEL[list] }}</span>
-            <span class="list-count tabular t-mono">{{ subjectsByList[list].size }}/{{ totalSubjects }}</span>
+            <span class="list-count tabular t-mono">{{ subjectsByList[list] }}/{{ totalSubjects }}</span>
           </div>
           <div class="bar">
             <span class="bar-fill" :style="{ width: progressPct(list) + '%' }" />

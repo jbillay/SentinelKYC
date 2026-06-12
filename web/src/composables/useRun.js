@@ -59,6 +59,7 @@ export function useRun(threadIdRef) {
         evaluations: [],
         currentSubjectId: null,
         currentList: null,
+        screenedByList: { ofac_sdn: {}, uk_hmt: {}, adverse_media: {} },
         lastEvents: [],
       }
   )
