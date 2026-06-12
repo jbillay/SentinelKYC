@@ -11,7 +11,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,550;9..144,640&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B3D91'/%3E%3Cpath d='M16 6l8 3v6.5c0 5.2-3.4 8.9-8 10.5-4.6-1.6-8-5.3-8-10.5V9l8-3z' fill='none' stroke='%23F7F7F5' stroke-width='2'/%3E%3Ccircle cx='16' cy='15' r='2.4' fill='%23E8A33D'/%3E%3C/svg%3E" />
+<link rel="icon" type="image/x-icon" href="favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
 <style>
   :root {
     --navy: #0B3D91;
@@ -73,6 +76,7 @@
   }
   .brand { display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 700; letter-spacing: -0.01em; }
   .brand svg { display: block; }
+  .brand-logo { display: block; height: 34px; width: auto; }
   .top nav { display: flex; gap: 28px; align-items: center; }
   .top nav a { color: rgba(255,255,255,0.78); font-size: 14px; font-weight: 500; transition: color 160ms var(--ease); }
   .top nav a:hover { color: #fff; }
@@ -373,8 +377,7 @@
 <header class="top">
   <div class="wrap top-in">
     <a class="brand" href="#">
-      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0B3D91"/><path d="M16 6l8 3v6.5c0 5.2-3.4 8.9-8 10.5-4.6-1.6-8-5.3-8-10.5V9l8-3z" fill="none" stroke="#F7F7F5" stroke-width="2"/><circle cx="16" cy="15" r="2.4" fill="#E8A33D"/></svg>
-      SentinelKYC
+      <img src="logo-dark.png" alt="Sentinel KYC" class="brand-logo" />
     </a>
     <nav>
       <a href="#agents">Product</a>
@@ -537,9 +540,8 @@
 <footer>
   <div class="wrap foot">
     <div>
-      <div class="brand" style="color: var(--ink);">
-        <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0B3D91"/><path d="M16 6l8 3v6.5c0 5.2-3.4 8.9-8 10.5-4.6-1.6-8-5.3-8-10.5V9l8-3z" fill="none" stroke="#F7F7F5" stroke-width="2"/><circle cx="16" cy="15" r="2.4" fill="#E8A33D"/></svg>
-        SentinelKYC
+      <div class="brand">
+        <img src="logo-light.png" alt="Sentinel KYC" class="brand-logo" />
       </div>
       <p class="small" style="margin-top: 12px;">
         SentinelKYC is software in active development (v0.1).
