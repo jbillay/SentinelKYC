@@ -2,6 +2,8 @@
 
 Agentic KYC (Know Your Customer) for UK companies — with a complete, reviewable audit trail.
 
+**Website**: [jbillay.github.io/SentinelKYC](https://jbillay.github.io/SentinelKYC/)
+
 SentinelKYC resolves a company against the Companies House register, pulls its filings, runs OCR and structured extraction over them, screens every identified party (officers, PSCs, shareholders) against sanctions lists (OFAC SDN, UK HMT) and live adverse media, computes a deterministic weighted-factor risk assessment, QA-gates the case, and routes it — auto-approving low-risk cases and pausing for a human reviewer otherwise. Every LLM decision is persisted as an inspectable, overridable decision fragment; successive runs can be diffed.
 
 > **Status**: transitioning from a validated proof of concept to v0.1. Expect rapid restructuring. The architecture target is a suite of independently deployable agents (entity resolution, UBO/ownership structure, document management, screening, risk, QA) behind a pluggable data-vendor layer.

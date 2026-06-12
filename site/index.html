@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SentinelKYC — Agentic KYC with a complete audit trail</title>
+<meta name="description" content="SentinelKYC resolves UK companies, reads their filings, screens every party against sanctions and adverse media, scores risk deterministically — and logs every decision so a reviewer can audit, override, and diff each step." />
+<meta property="og:title" content="SentinelKYC — Agentic KYC with a complete audit trail" />
+<meta property="og:description" content="Open-source agentic KYC: entity resolution, document intelligence, sanctions and adverse-media screening, deterministic risk, QA routing — every decision inspectable and overridable." />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,550;9..144,640&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B3D91'/%3E%3Cpath d='M16 6l8 3v6.5c0 5.2-3.4 8.9-8 10.5-4.6-1.6-8-5.3-8-10.5V9l8-3z' fill='none' stroke='%23F7F7F5' stroke-width='2'/%3E%3Ccircle cx='16' cy='15' r='2.4' fill='%23E8A33D'/%3E%3C/svg%3E" />
+<style>
+  :root {
+    --navy: #0B3D91;
+    --navy-deep: #082C69;
+    --navy-ink: #061F4B;
+    --amber: #B45309;
+    --amber-bright: #E8A33D;
+    --paper: #F7F7F5;
+    --paper-sunken: #EEEEE8;
+    --surface: #FFFFFF;
+    --ink: #101418;
+    --ink-2: #475569;
+    --ink-3: #737A82;
+    --line: #E4E4DC;
+    --line-strong: #C9CDD3;
+    --success: #1F6F43;
+    --danger: #A52828;
+    --display: 'Fraunces', Georgia, serif;
+    --sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --ease: cubic-bezier(0.2, 0, 0, 1);
+    --maxw: 1120px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--navy); text-decoration: none; }
+  ::selection { background: #E8EEFB; }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+  .mono { font-family: var(--mono); font-size: 13px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--amber-bright);
+  }
+  .eyebrow--dark { color: var(--amber); }
+
+  /* ---------- top bar ---------- */
+  .top {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(6, 31, 75, 0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .top-in {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 60px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 700; letter-spacing: -0.01em; }
+  .brand svg { display: block; }
+  .top nav { display: flex; gap: 28px; align-items: center; }
+  .top nav a { color: rgba(255,255,255,0.78); font-size: 14px; font-weight: 500; transition: color 160ms var(--ease); }
+  .top nav a:hover { color: #fff; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: 6px;
+    font-weight: 600; font-size: 14px; line-height: 1;
+    border: 1px solid transparent;
+    transition: transform 160ms var(--ease), background 160ms var(--ease), border-color 160ms var(--ease);
+    cursor: pointer;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn--amber { background: var(--amber-bright); color: var(--navy-ink); }
+  .btn--amber:hover { background: #F2B45C; }
+  .btn--ghost { border-color: rgba(255,255,255,0.28); color: #fff; }
+  .btn--ghost:hover { border-color: rgba(255,255,255,0.6); }
+  .btn--navy { background: var(--navy); color: #fff; }
+  .btn--navy:hover { background: var(--navy-deep); }
+  .btn--line { border-color: var(--line-strong); color: var(--ink); background: var(--surface); }
+  .btn--line:hover { border-color: var(--ink-3); }
+
+  /* ---------- hero ---------- */
+  .hero {
+    position: relative;
+    background:
+      radial-gradient(1100px 480px at 78% -10%, rgba(232,163,61,0.14), transparent 60%),
+      radial-gradient(900px 600px at -10% 110%, rgba(11,61,145,0.55), transparent 60%),
+      linear-gradient(180deg, var(--navy-ink) 0%, var(--navy-deep) 100%);
+    color: #fff;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 90% 80% at 50% 20%, black 35%, transparent 75%);
+    pointer-events: none;
+  }
+  .hero-in {
+    position: relative;
+    display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: 56px; align-items: center;
+    padding: 88px 0 96px;
+  }
+  .hero h1 {
+    font-family: var(--display);
+    font-weight: 550;
+    font-size: clamp(40px, 5vw, 58px);
+    line-height: 1.06;
+    letter-spacing: -0.015em;
+    margin: 18px 0 22px;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--amber-bright);
+  }
+  .hero p.lede {
+    font-size: 18px; line-height: 1.65;
+    color: rgba(255,255,255,0.82);
+    max-width: 52ch; margin: 0 0 32px;
+  }
+  .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; }
+  .hero-note { margin-top: 22px; font-family: var(--mono); font-size: 12.5px; color: rgba(255,255,255,0.5); }
+  .hero-note a { color: rgba(255,255,255,0.72); text-decoration: underline; text-underline-offset: 3px; }
+
+  /* trail card */
+  .trail {
+    background: rgba(8, 44, 105, 0.55);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 10px;
+    box-shadow: 0 32px 80px rgba(3, 14, 38, 0.55);
+    overflow: hidden;
+    transform: rotate(0.6deg);
+  }
+  .trail-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-family: var(--mono); font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .trail-dot { width: 8px; height: 8px; border-radius: 99px; background: var(--amber-bright); box-shadow: 0 0 0 4px rgba(232,163,61,0.18); animation: pulse 2.4s infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 3px rgba(232,163,61,0.16);} 50% { box-shadow: 0 0 0 7px rgba(232,163,61,0.06);} }
+  .trail-body { padding: 18px; display: flex; flex-direction: column; gap: 0; }
+  .step {
+    display: grid; grid-template-columns: 20px 1fr auto; gap: 12px; align-items: baseline;
+    padding: 9px 4px;
+    font-family: var(--mono); font-size: 13px;
+    color: rgba(255,255,255,0.85);
+    border-bottom: 1px dashed rgba(255,255,255,0.08);
+    opacity: 0; transform: translateY(6px);
+    animation: rise 480ms var(--ease) forwards;
+  }
+  .step:last-child { border-bottom: none; }
+  .step .tick { color: var(--amber-bright); }
+  .step .lat { color: rgba(255,255,255,0.38); font-size: 12px; }
+  .step--verdict { border: 1px solid rgba(232,163,61,0.5); border-radius: 6px; margin-top: 12px; padding: 12px 14px; background: rgba(232,163,61,0.08); }
+  .step--verdict .lat { color: var(--amber-bright); }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  .step:nth-child(1) { animation-delay: 150ms; } .step:nth-child(2) { animation-delay: 320ms; }
+  .step:nth-child(3) { animation-delay: 490ms; } .step:nth-child(4) { animation-delay: 660ms; }
+  .step:nth-child(5) { animation-delay: 830ms; } .step:nth-child(6) { animation-delay: 1000ms; }
+  .step:nth-child(7) { animation-delay: 1240ms; }
+
+  /* ---------- ledger strip ---------- */
+  .ledger { border-bottom: 1px solid var(--line); background: var(--surface); }
+  .ledger-in {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    padding: 26px 0;
+  }
+  .ledger-item { padding: 0 28px; border-left: 1px solid var(--line); }
+  .ledger-item:first-child { border-left: none; padding-left: 4px; }
+  .ledger-item .n { font-family: var(--display); font-size: 30px; font-weight: 550; letter-spacing: -0.01em; color: var(--navy); line-height: 1.15; }
+  .ledger-item .d { font-size: 13px; color: var(--ink-3); margin-top: 2px; }
+
+  /* ---------- sections ---------- */
+  section { padding: 88px 0; }
+  .sec-head { max-width: 640px; margin-bottom: 52px; }
+  .sec-head h2 {
+    font-family: var(--display); font-weight: 550;
+    font-size: clamp(28px, 3.4vw, 40px); line-height: 1.12;
+    letter-spacing: -0.01em; margin: 14px 0 14px;
+  }
+  .sec-head p { color: var(--ink-2); font-size: 16.5px; margin: 0; }
+
+  /* agents grid */
+  .agents { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .agent {
+    background: var(--surface);
+    padding: 30px 28px 34px;
+    position: relative;
+    transition: background 200ms var(--ease);
+  }
+  .agent:hover { background: #FCFCFA; }
+  .agent .idx {
+    font-family: var(--mono); font-size: 12px; color: var(--ink-3);
+    display: block; margin-bottom: 18px;
+  }
+  .agent h3 { font-size: 17px; font-weight: 700; margin: 0 0 8px; letter-spacing: -0.005em; }
+  .agent p { font-size: 14.5px; color: var(--ink-2); margin: 0; line-height: 1.6; }
+  .agent .switch {
+    position: absolute; top: 26px; right: 24px;
+    width: 30px; height: 17px; border-radius: 99px;
+    background: var(--success); opacity: 0.85;
+  }
+  .agent .switch::after {
+    content: ''; position: absolute; top: 2.5px; right: 2.5px;
+    width: 12px; height: 12px; border-radius: 99px; background: #fff;
+  }
+
+  /* pipeline */
+  .pipeline-sec { background: var(--paper-sunken); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .pipe { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding-bottom: 8px; }
+  .pipe-step { min-width: 168px; flex: 1; position: relative; padding: 22px 20px 22px 24px; background: var(--surface); border: 1px solid var(--line); border-left: none; }
+  .pipe-step:first-child { border-left: 1px solid var(--line); border-radius: 8px 0 0 8px; }
+  .pipe-step:last-child { border-radius: 0 8px 8px 0; }
+  .pipe-step .k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--amber); }
+  .pipe-step h4 { margin: 6px 0 4px; font-size: 15px; font-weight: 700; }
+  .pipe-step p { margin: 0; font-size: 13px; color: var(--ink-3); line-height: 1.5; }
+  .pipe-step::after {
+    content: '→'; position: absolute; right: -9px; top: 50%; transform: translateY(-50%);
+    z-index: 2; color: var(--ink-3); background: var(--paper-sunken); font-size: 13px;
+  }
+  .pipe-step:last-child::after { content: none; }
+  .pipe-step--human { background: #FBF1E1; border-color: #ECD9B8; }
+  .pipe-legend { margin-top: 18px; font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); }
+  .pipe-legend .sw { display: inline-block; width: 10px; height: 10px; background: #FBF1E1; border: 1px solid #ECD9B8; margin-right: 6px; vertical-align: baseline; }
+
+  /* audit section */
+  .audit-grid { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); gap: 64px; align-items: start; }
+  .audit-points { display: flex; flex-direction: column; gap: 0; counter-reset: pt; }
+  .audit-point { padding: 22px 0; border-bottom: 1px solid var(--line); }
+  .audit-point:first-child { border-top: 1px solid var(--line); }
+  .audit-point h3 { font-size: 16.5px; font-weight: 700; margin: 0 0 6px; display: flex; gap: 14px; align-items: baseline; }
+  .audit-point h3::before {
+    counter-increment: pt; content: counter(pt, decimal-leading-zero);
+    font-family: var(--mono); font-size: 12px; font-weight: 400; color: var(--amber);
+  }
+  .audit-point p { margin: 0 0 0 34px; font-size: 14.5px; color: var(--ink-2); }
+
+  .fragcard {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: 0 24px 60px rgba(16,20,24,0.08);
+    overflow: hidden;
+    position: sticky; top: 92px;
+  }
+  .fragcard-head { padding: 14px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+  .fragcard-head .t { font-weight: 700; font-size: 14px; }
+  .stamp {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;
+    padding: 4px 10px; border: 1.5px solid var(--danger); color: var(--danger);
+    border-radius: 3px; transform: rotate(-2deg); text-transform: uppercase;
+  }
+  .frag { padding: 14px 20px; border-bottom: 1px solid var(--line); }
+  .frag:last-child { border-bottom: none; }
+  .frag .fh { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--ink-3); margin-bottom: 4px; }
+  .frag .fh .ok { color: var(--success); }
+  .frag .fh .warn { color: var(--amber); }
+  .frag .fs { font-size: 13.5px; color: var(--ink); }
+  .frag--override { background: #FBF1E1; }
+
+  /* open source strip */
+  .oss { background: var(--navy-ink); color: #fff; }
+  .oss-in { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 56px; align-items: center; padding: 72px 0; }
+  .oss h2 { font-family: var(--display); font-weight: 550; font-size: clamp(26px, 3vw, 36px); line-height: 1.15; margin: 12px 0 14px; letter-spacing: -0.01em; }
+  .oss p { color: rgba(255,255,255,0.78); margin: 0 0 26px; max-width: 50ch; }
+  .stack { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font-family: var(--mono); font-size: 12.5px;
+    padding: 7px 13px; border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 99px; color: rgba(255,255,255,0.85);
+  }
+
+  /* contact */
+  .contact-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 64px; }
+  .cform { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 30px; }
+  .cform label { display: block; font-size: 13px; font-weight: 600; margin: 0 0 6px; }
+  .cform input, .cform textarea {
+    width: 100%; border: 1px solid var(--line-strong); border-radius: 6px;
+    padding: 11px 13px; font: inherit; font-size: 14.5px; background: var(--paper);
+    margin-bottom: 18px;
+    transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease);
+  }
+  .cform input:focus, .cform textarea:focus { outline: none; border-color: var(--navy); box-shadow: 0 0 0 3px #E8EEFB; }
+  .cform textarea { min-height: 130px; resize: vertical; }
+  .form-ok {
+    display: none; margin-top: 16px; padding: 12px 16px; border-radius: 6px;
+    background: #E6F2EC; color: var(--success); font-size: 14px; font-weight: 600;
+  }
+  .form-ok.show { display: block; }
+  .contact-side p { color: var(--ink-2); font-size: 15.5px; }
+  .contact-side .mono-note { font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); margin-top: 26px; line-height: 1.7; }
+
+  /* footer */
+  footer { border-top: 1px solid var(--line); padding: 36px 0 48px; }
+  .foot { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; align-items: baseline; }
+  .foot .small { font-size: 13px; color: var(--ink-3); max-width: 64ch; }
+  .foot nav { display: flex; gap: 22px; font-size: 13.5px; }
+
+  /* reveal on scroll */
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity 600ms var(--ease), transform 600ms var(--ease); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  @media (max-width: 920px) {
+    .hero-in, .audit-grid, .oss-in, .contact-grid { grid-template-columns: 1fr; }
+    .agents { grid-template-columns: 1fr; }
+    .ledger-in { grid-template-columns: repeat(2, 1fr); row-gap: 22px; }
+    .ledger-item:nth-child(3) { border-left: none; padding-left: 4px; }
+    .top nav { display: none; }
+    .fragcard { position: static; }
+    section { padding: 64px 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+    .reveal { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-in">
+    <a class="brand" href="#">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0B3D91"/><path d="M16 6l8 3v6.5c0 5.2-3.4 8.9-8 10.5-4.6-1.6-8-5.3-8-10.5V9l8-3z" fill="none" stroke="#F7F7F5" stroke-width="2"/><circle cx="16" cy="15" r="2.4" fill="#E8A33D"/></svg>
+      SentinelKYC
+    </a>
+    <nav>
+      <a href="#agents">Product</a>
+      <a href="#pipeline">How it works</a>
+      <a href="#audit">Audit trail</a>
+      <a href="#opensource">Open source</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <a class="btn btn--amber" href="#contact">Request a walkthrough</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap hero-in">
+    <div>
+      <span class="eyebrow">KYC due diligence · audited by design</span>
+      <h1>Agentic KYC where every decision <em>shows its work.</em></h1>
+      <p class="lede">
+        SentinelKYC resolves a company against the UK register, reads its filings, screens every
+        officer, owner, and shareholder against sanctions lists and live adverse media, and scores
+        risk deterministically — then routes the case to a human when, and only when, it should.
+        Each step is logged as an inspectable decision your reviewers can override and your
+        auditors can replay.
+      </p>
+      <div class="hero-ctas">
+        <a class="btn btn--amber" href="https://github.com/jbillay/SentinelKYC" target="_blank" rel="noopener">View on GitHub</a>
+        <a class="btn btn--ghost" href="#pipeline">See how it works</a>
+      </div>
+      <p class="hero-note">Open source · runs on your own infrastructure · local-first LLMs supported</p>
+    </div>
+
+    <div class="trail" aria-hidden="true">
+      <div class="trail-head"><span>agent trail · run 41a6&hellip;9f</span><span class="trail-dot"></span></div>
+      <div class="trail-body">
+        <div class="step"><span class="tick">✓</span><span>entity_resolution → auto-match 0.97, confirmed by analyst</span><span class="lat">1.2s</span></div>
+        <div class="step"><span class="tick">✓</span><span>documents → 3 filings · OCR 5 pages · shareholders extracted</span><span class="lat">48s</span></div>
+        <div class="step"><span class="tick">✓</span><span>party_master → 6 subjects resolved, 1 cross-dossier match</span><span class="lat">0.4s</span></div>
+        <div class="step"><span class="tick">✓</span><span>screening → OFAC SDN + UK HMT clean · 2 articles dismissed</span><span class="lat">14s</span></div>
+        <div class="step"><span class="tick">✓</span><span>risk → score 23.5 · tier Low · no knockouts</span><span class="lat">0.1s</span></div>
+        <div class="step"><span class="tick">✓</span><span>qa_gate → completeness ✓ consistency ✓</span><span class="lat">0.1s</span></div>
+        <div class="step step--verdict"><span class="tick">▸</span><span>routing → AUTO-APPROVED · narrative filed · 14 decisions logged</span><span class="lat">audit-ready</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="ledger">
+  <div class="wrap ledger-in">
+    <div class="ledger-item"><div class="n">6</div><div class="d">autonomous agents, individually configurable</div></div>
+    <div class="ledger-item"><div class="n">100%</div><div class="d">of pipeline decisions logged &amp; reviewable</div></div>
+    <div class="ledger-item"><div class="n">2 + live</div><div class="d">sanctions lists (OFAC SDN, UK HMT) + adverse media</div></div>
+    <div class="ledger-item"><div class="n">0</div><div class="d">silent auto-approvals on a partial assessment</div></div>
+  </div>
+</div>
+
+<section id="agents">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow eyebrow--dark">The pipeline, unbundled</span>
+      <h2>Six agents. One case file.</h2>
+      <p>Each stage of due diligence is an independent agent — enable, disable, and tune any of them at runtime. Disable one and the system degrades honestly: a partially assessed case always lands with a human reviewer.</p>
+    </div>
+    <div class="agents">
+      <div class="agent reveal"><span class="idx">01 / entity-resolution</span><span class="switch" title="enabled"></span><h3>Entity resolution</h3><p>Searches the registry, scores candidates deterministically, and pauses for analyst confirmation. Built for vendor composition — Companies House as the free base, premium data vendors layered on top with per-field attribution.</p></div>
+      <div class="agent reveal"><span class="idx">02 / document-manager</span><span class="switch" title="enabled"></span><h3>Document intelligence</h3><p>Pulls the latest filings, extracts the text layer, and OCRs only the pages worth reading. Shareholders, financials, and subscribers come out as structured data — with provenance and confidence on every record.</p></div>
+      <div class="agent reveal"><span class="idx">03 / ubo-structure</span><span class="switch" title="enabled"></span><h3>UBO &amp; ownership structure</h3><p>Resolves every officer, PSC, and shareholder into a cross-dossier party master — the same person on three dossiers is one screened identity — and renders the ownership graph for review.</p></div>
+      <div class="agent reveal"><span class="idx">04 / screening</span><span class="switch" title="enabled"></span><h3>Sanctions &amp; adverse media</h3><p>Fuzzy name matching against locally cached OFAC SDN and UK HMT lists, plus live news screening. An LLM judges each potential hit — and biases toward human review when identifiers are thin.</p></div>
+      <div class="agent reveal"><span class="idx">05 / risk-assessment</span><span class="switch" title="enabled"></span><h3>Deterministic risk</h3><p>A weighted-factor engine — geography, entity type, structural complexity, industry — under a versioned risk matrix your compliance team edits in the UI. Screening knockouts can floor or force the tier; the LLM writes the rationale, never the score.</p></div>
+      <div class="agent reveal"><span class="idx">06 / qa</span><span class="switch" title="enabled"></span><h3>QA gate &amp; routing</h3><p>A pure completeness-and-consistency engine routes every case: low risk auto-approves, anything else goes to streamlined or standard review — with a regulator-style narrative memo written for the file.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="pipeline" class="pipeline-sec">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow eyebrow--dark">How it works</span>
+      <h2>From a company name to a routed case.</h2>
+      <p>One run takes a name or company number and produces a complete dossier: identity, officers, owners, financials, screening outcomes, a risk score with its receipt, and a recommendation — paused for a human exactly twice.</p>
+    </div>
+    <div class="pipe reveal">
+      <div class="pipe-step pipe-step--human"><span class="k">pause 1</span><h4>Confirm entity</h4><p>Analyst confirms the matched company.</p></div>
+      <div class="pipe-step"><span class="k">fetch</span><h4>Registry + filings</h4><p>Profile, officers, PSC, filing history, PDFs.</p></div>
+      <div class="pipe-step"><span class="k">extract</span><h4>Read documents</h4><p>Text-first, OCR where needed, structured output.</p></div>
+      <div class="pipe-step"><span class="k">screen</span><h4>Every party</h4><p>Sanctions + adverse media on all subjects.</p></div>
+      <div class="pipe-step"><span class="k">score</span><h4>Risk + QA</h4><p>Deterministic score, knockouts, QA routing.</p></div>
+      <div class="pipe-step pipe-step--human"><span class="k">pause 2</span><h4>Human decision</h4><p>Approve, reject, escalate, or request info.</p></div>
+    </div>
+    <p class="pipe-legend reveal"><span class="sw"></span>human-in-the-loop — the graph interrupts and waits; low-risk cases that pass QA auto-approve with a system signature.</p>
+  </div>
+</section>
+
+<section id="audit">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow eyebrow--dark">Built for the audit</span>
+      <h2>If a regulator asks &ldquo;why?&rdquo;, the answer is already filed.</h2>
+      <p>Automation you can't explain is risk you can't accept. SentinelKYC treats the audit trail as the product, not a by-product.</p>
+    </div>
+    <div class="audit-grid">
+      <div class="audit-points reveal">
+        <div class="audit-point"><h3>Every decision is a record</h3><p>Each pipeline step writes a decision fragment — inputs, outputs, timing, and outcome — nested down to the individual screening hit.</p></div>
+        <div class="audit-point"><h3>Humans outrank models</h3><p>Reviewers override any LLM judgement on the record, with a reason. Overrides carry forward across runs and across dossiers at the party level.</p></div>
+        <div class="audit-point"><h3>Runs are diffable</h3><p>Re-run a company a month later and diff the two dossiers — what changed, what was screened, how the risk moved and why.</p></div>
+        <div class="audit-point"><h3>Deterministic where it matters</h3><p>Entity scoring, screening risk rules, the risk matrix, and QA routing are pure engines. Same inputs, same outputs, every time — LLMs draft and judge, they never decide alone.</p></div>
+        <div class="audit-point"><h3>Configuration is versioned</h3><p>Prompts, the risk matrix, and every agent's settings are append-only versions with an immutable change log — who changed what, and when.</p></div>
+      </div>
+      <div class="fragcard reveal" aria-hidden="true">
+        <div class="fragcard-head"><span class="t">Decision fragments — ACME HOLDINGS LTD</span><span class="stamp">standard review</span></div>
+        <div class="frag"><div class="fh"><span>screening / evaluate_sanctions_hit</span><span class="warn">needs_review</span></div><div class="fs">Name match 0.91 vs OFAC SDN entry — no DOB on record to corroborate or dismiss. Routed to reviewer.</div></div>
+        <div class="frag frag--override"><div class="fh"><span>human_action / reviewer.amercer</span><span>override</span></div><div class="fs">Dismissed: subject DOB 1981 confirmed from filing; SDN entry DOB 1954. Reason filed on the record.</div></div>
+        <div class="frag"><div class="fh"><span>risk / assess_risk</span><span class="ok">ok</span></div><div class="fs">Score 58.2 → tier Medium. Drivers: 3 corporate PSC layers; higher-risk jurisdiction in chain. Matrix v4.</div></div>
+        <div class="frag"><div class="fh"><span>qa / routing</span><span class="ok">ok</span></div><div class="fs">Completeness ✓, consistency ✓, tier Medium → streamlined review. Narrative memo attached.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="opensource" class="oss">
+  <div class="wrap oss-in">
+    <div>
+      <span class="eyebrow">Open source · build in the open</span>
+      <h2>Your data stays yours. So does the pipeline.</h2>
+      <p>SentinelKYC is open source and runs on your own infrastructure — including fully local LLMs, so customer data never has to leave your network. Inspect the engine that scores your customers; it's all on GitHub.</p>
+      <a class="btn btn--amber" href="https://github.com/jbillay/SentinelKYC" target="_blank" rel="noopener">github.com/jbillay/SentinelKYC</a>
+    </div>
+    <div class="stack">
+      <span class="chip">Vue 3</span><span class="chip">Node.js</span><span class="chip">LangGraph</span>
+      <span class="chip">PostgreSQL</span><span class="chip">Ollama · local LLMs</span><span class="chip">NVIDIA NIM</span>
+      <span class="chip">OFAC SDN</span><span class="chip">UK HMT</span><span class="chip">Companies House API</span>
+      <span class="chip">GDELT adverse media</span><span class="chip">OpenAPI</span><span class="chip">Unlicense</span>
+    </div>
+  </div>
+</section>
+
+<section id="contact">
+  <div class="wrap contact-grid">
+    <div class="contact-side reveal">
+      <span class="eyebrow eyebrow--dark">Contact</span>
+      <h2 style="font-family: var(--display); font-weight: 550; font-size: clamp(26px, 3vw, 36px); line-height: 1.15; letter-spacing: -0.01em; margin: 14px 0;">See it on your own cases.</h2>
+      <p>Whether you're evaluating agentic approaches to onboarding, modernising a manual KYC desk, or just curious how the audit trail holds up — send a note and we'll set up a walkthrough on companies you choose.</p>
+      <p class="mono-note">// no mailing lists, no drip campaigns.<br />// your message lands in a human inbox.</p>
+    </div>
+    <form class="cform reveal" action="https://formsubmit.co/amJpbGxheUBnbWFpbC5jb20=" method="POST">
+      <input type="hidden" name="_subject" value="SentinelKYC — contact form" />
+      <input type="hidden" name="_next" value="https://jbillay.github.io/SentinelKYC/?sent=1#contact" />
+      <input type="text" name="_honey" style="display:none" tabindex="-1" autocomplete="off" />
+      <label for="cf-name">Name</label>
+      <input id="cf-name" name="name" type="text" required autocomplete="name" />
+      <label for="cf-email">Work email</label>
+      <input id="cf-email" name="email" type="email" required autocomplete="email" />
+      <label for="cf-msg">What are you working on?</label>
+      <textarea id="cf-msg" name="message" required placeholder="e.g. UK corporate onboarding, ~200 cases/month, currently manual…"></textarea>
+      <button class="btn btn--navy" type="submit">Send message</button>
+      <p class="form-ok" id="form-ok">Thanks — your message is on its way. We'll come back to you shortly.</p>
+    </form>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <div>
+      <div class="brand" style="color: var(--ink);">
+        <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0B3D91"/><path d="M16 6l8 3v6.5c0 5.2-3.4 8.9-8 10.5-4.6-1.6-8-5.3-8-10.5V9l8-3z" fill="none" stroke="#F7F7F5" stroke-width="2"/><circle cx="16" cy="15" r="2.4" fill="#E8A33D"/></svg>
+        SentinelKYC
+      </div>
+      <p class="small" style="margin-top: 12px;">
+        SentinelKYC is software in active development (v0.1) and is provided as-is under the Unlicense.
+        It supports — and does not replace — your regulated KYC/AML obligations and professional judgement.
+      </p>
+    </div>
+    <nav>
+      <a href="https://github.com/jbillay/SentinelKYC" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/jbillay/SentinelKYC/tree/main/docs" target="_blank" rel="noopener">Documentation</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+  // Scroll reveals
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+
+  // Post-submit confirmation (FormSubmit redirects back with ?sent=1)
+  if (new URLSearchParams(location.search).get('sent') === '1') {
+    const ok = document.getElementById('form-ok');
+    if (ok) ok.classList.add('show');
+  }
+</script>
+
+</body>
+</html>
