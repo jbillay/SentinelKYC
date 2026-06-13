@@ -4,16 +4,17 @@ GitHub Actions gates every PR; a labelled PR merges itself once the gate is gree
 
 ## The CI gate (`.github/workflows/ci.yml`)
 
-Runs on every `pull_request` and on push to `main`. Four jobs, all required to merge:
+Runs on every `pull_request` and on push to `main`. Four work jobs plus one aggregating gate:
 
-| Check name (exact) | What it does | Needs |
+| Job | What it does | Needs |
 |---|---|---|
 | `Secret scan (gitleaks)` | gitleaks over the full history | — |
 | `Server — unit + node smoke tier` | `test:unit:coverage` (coverage thresholds) + `npm test` (node-only smokes) | — |
 | `Server — migrations + DB smoke` | `db:migrate` → `db:smoke` → `users:seed` → `auth:smoke` against a Postgres service | Postgres (CI service container) |
 | `Web — lint + build` | oxlint + eslint + `vite build` | — |
+| `CI gate` | `needs:` all four; fails unless every one succeeded. **The only check the `main` ruleset requires.** | the four above |
 
-No LLM runs on CI runners (`LLM_BOOT_CHECK=warn`); the LLM/eval tiers (`smoke:full`, `eval`) are local/nightly only, never a PR gate.
+The ruleset requires **only `CI gate`** (one stable name), so renaming any work job's display `name:` never breaks merging. No LLM runs on CI runners (`LLM_BOOT_CHECK=warn`); the LLM/eval tiers (`smoke:full`, `eval`) are local/nightly only, never a PR gate.
 
 ## Auto-merge (`.github/workflows/automerge.yml`)
 
@@ -36,11 +37,11 @@ A `cleanup` job in the same workflow deletes the head branch on any merged same-
 ## Consequences / gotchas
 
 - **Direct pushes to `main` are blocked** for non-admins — land changes via a PR. Admins can bypass, but the PR path is the intended one.
-- **Renaming a CI job breaks the gate.** The ruleset pins the four required checks by their exact job `name`. If you rename a job in `ci.yml` (or add a new one that should gate), update the ruleset's required-status-check contexts to match — otherwise auto-merge waits forever on a check that never reports. Update them with:
+- **Adding a job that should block merges?** Add its job-id to `ci-gate`'s `needs:` list in `ci.yml`. The ruleset requires only `CI gate`, so the gate is what decides. Renaming a work job's display `name:` is safe (the ruleset never references it); renaming a job-*id* requires updating `needs:` too — and a stale `needs:` entry is a loud workflow error, not a silently stuck merge. The ruleset itself (id `17635386`) almost never needs to change. To inspect / change its required check:
   ```bash
-  # inspect current required contexts
+  # inspect current required contexts (should be just "CI gate")
   gh api repos/jbillay/SentinelKYC/rules/branches/main \
     --jq '[.[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context]'
-  # then PATCH the ruleset (id 17635386) with the new context list
+  # only if you ever rename the gate job itself: PATCH the ruleset
   gh api -X PUT repos/jbillay/SentinelKYC/rulesets/17635386 --input <updated-ruleset.json>
   ```
