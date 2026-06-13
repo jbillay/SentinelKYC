@@ -1,0 +1,43 @@
+name: Auto-merge
+
+# Arms GitHub's native auto-merge on any PR carrying the `automerge` label.
+# The merge itself is performed by GitHub once the branch ruleset on `main`
+# is satisfied (the CI checks in ci.yml pass), then the head branch is deleted
+# (repo setting `delete_branch_on_merge`). This workflow only flips the switch.
+#
+# Flow: add the `automerge` label -> auto-merge enabled (squash) -> CI goes
+# green -> GitHub squash-merges into main -> branch deleted. Remove the label
+# to disarm.
+
+on:
+  pull_request:
+    types: [labeled, unlabeled, opened, reopened, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  arm:
+    name: Arm auto-merge
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.pull_request.draft == false &&
+      contains(github.event.pull_request.labels.*.name, 'automerge')
+    steps:
+      - name: Enable native auto-merge (squash + delete branch)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge "${{ github.event.pull_request.number }}" --auto --squash --delete-branch --repo "${{ github.repository }}"
+
+  disarm:
+    name: Disable auto-merge
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.action == 'unlabeled' &&
+      github.event.label.name == 'automerge'
+    steps:
+      - name: Disable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge "${{ github.event.pull_request.number }}" --disable-auto --repo "${{ github.repository }}" || true
