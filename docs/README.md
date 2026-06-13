@@ -10,6 +10,7 @@
 | [entity-resolution.md](architecture/entity-resolution.md) | Per-run entity confirmation scoring |
 | [server/db/SETUP.md](../server/db/SETUP.md) | One-time native Postgres setup (Windows) |
 | [server/eval/README.md](../server/eval/README.md) | R3 eval harness — golden-set quality scoring |
+| [CI.md](CI.md) | CI gate (`ci.yml`) + label-driven auto-merge + branch ruleset |
 
 ## Business
 

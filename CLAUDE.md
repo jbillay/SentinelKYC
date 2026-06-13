@@ -144,6 +144,10 @@ ollama pull glm-ocr
 ollama pull llama3.1:8b
 ```
 
+## CI & merging
+
+`.github/workflows/ci.yml` gates every PR (4 required checks: gitleaks; server unit+coverage+node smoke; server migrations + DB smoke incl. `auth:smoke` against a Postgres service; web lint+build). No LLM on CI — `smoke:full`/`eval` are local/nightly only. **Direct pushes to `main` are blocked** by a branch ruleset (require-a-PR + the 4 checks; admins bypass) — land changes via a PR. **Auto-merge is opt-in:** add the `automerge` label to a PR and `.github/workflows/automerge.yml` squash-merges it + deletes the branch once CI is green. **Gotcha:** the ruleset pins required checks by exact job `name` — rename a CI job and you must update the ruleset or auto-merge waits forever. Full detail: `docs/CI.md`.
+
 ## Agent configuration & toggles (v0.1 Phases 1+2)
 
 The six pipeline agents (`entity-resolution`, `document-manager`, `ubo-structure`, `screening`, `risk-assessment`, `qa`) are defined in `agents/defs.js` and configured at runtime via Settings → Agents (`/settings#agents`), no restart:
