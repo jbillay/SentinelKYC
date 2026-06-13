@@ -1,5 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { useAuthStore } from '../stores/auth.js'
+
+const auth = useAuthStore()
 
 const props = defineProps({
   // The riskAssessment object from runs.final_risk_assessment.
@@ -208,9 +211,14 @@ function factorAttribute(f) {
       </div>
 
       <footer class="risk-foot">
-        <RouterLink :to="{ name: 'settings', hash: '#risk-matrix' }" class="matrix-link">
+        <RouterLink
+          v-if="auth.hasRole('admin')"
+          :to="{ name: 'admin', hash: '#risk-matrix' }"
+          class="matrix-link"
+        >
           Matrix v{{ matrixVersion ?? '–' }}
         </RouterLink>
+        <span v-else class="t-meta">Matrix v{{ matrixVersion ?? '–' }}</span>
         <span v-if="calculatedAt" class="t-meta">Calculated {{ calculatedAt }}</span>
       </footer>
     </template>
