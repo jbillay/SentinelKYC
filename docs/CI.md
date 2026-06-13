@@ -27,7 +27,9 @@ Opt-in, label-driven:
 
 Remove the label to disarm. No label ⇒ nothing auto-merges.
 
-A `cleanup` job in the same workflow deletes the head branch on any merged same-repo PR (the `delete_branch_on_merge` repo setting is unreliable when the merge was armed by the github-actions bot, so the job guarantees it).
+### Merged-branch deletion (`.github/workflows/branch-sweep.yml`)
+
+The label flow arms auto-merge as the **github-actions bot**, and GitHub suppresses the events caused by `GITHUB_TOKEN` — so `delete_branch_on_merge` and any `pull_request: closed` cleanup never fire for an auto-merged PR. Instead, a **scheduled sweep** (hourly + `workflow_dispatch`) reaps them: it deletes the head branch of every merged PR that is in this repo, isn't the default branch, and has no open PR pointing at it. A schedule-triggered run isn't subject to the `GITHUB_TOKEN` suppression. Trigger it on demand from **Actions → Merged-branch sweep → Run workflow**.
 
 ### Supporting config (one-time, applied via the GitHub API — not in the repo)
 

@@ -1,0 +1,56 @@
+name: Merged-branch sweep
+
+# Deletes head branches of already-merged PRs.
+#
+# Why a scheduled sweep and not just a close-event hook: when auto-merge is
+# armed by the github-actions bot (our label flow always is), GitHub suppresses
+# the events that would otherwise fire — so `delete_branch_on_merge` and any
+# `pull_request: closed` cleanup never run. A schedule-triggered workflow is NOT
+# subject to that GITHUB_TOKEN suppression, so it reliably reaps the branches.
+#
+# Safe by construction: only deletes branches that are the head of a MERGED PR,
+# in this repo (never a fork), never the default branch, and never a branch a
+# still-open PR points at. Runs hourly; trigger on demand via "Run workflow".
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  sweep:
+    name: Sweep merged branches
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete head branches of merged PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          owner="${REPO%%/*}"
+          default="$(gh api "repos/$REPO" --jq .default_branch)"
+          open_heads="$(gh pr list --repo "$REPO" --state open --json headRefName --jq '.[].headRefName')"
+
+          gh pr list --repo "$REPO" --state merged --limit 100 \
+            --json headRefName,headRepositoryOwner \
+            --jq '.[] | select(.headRepositoryOwner.login=="'"$owner"'") | .headRefName' \
+          | sort -u | while read -r br; do
+              [ -z "$br" ] && continue
+              [ "$br" = "$default" ] && continue
+              if printf '%s\n' "$open_heads" | grep -qxF "$br"; then
+                echo "skip (open PR points at $br)"; continue
+              fi
+              if gh api "repos/$REPO/git/ref/heads/$br" >/dev/null 2>&1; then
+                if gh api -X DELETE "repos/$REPO/git/refs/heads/$br" >/dev/null 2>&1; then
+                  echo "deleted $br"
+                else
+                  echo "delete failed for $br (skipped)"
+                fi
+              fi
+            done
+          echo "sweep complete"
