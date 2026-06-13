@@ -147,6 +147,7 @@ async function run() {
     ['watchlist add', 'POST', `/api/parties/${NIL}/watchlist`, {}, 'reviewer'],
     ['watchlist remove', 'DELETE', `/api/parties/${NIL}/watchlist`, undefined, 'reviewer'],
     ['risk matrix version', 'POST', '/api/risk/matrix/versions', { body: {} }, 'admin'],
+    ['admin users list', 'GET', '/api/admin/users', undefined, 'admin'],
   ];
   for (const [label, method, p, body, minRole] of GUARDED) {
     const r = await c.req(method, p, { body, csrf: csrf2 });
@@ -201,6 +202,19 @@ async function run() {
   // Strict: 200, not merely "not 403" — a failed admin login would otherwise
   // make this pass vacuously with a 401.
   ok('admin → screening config → 200', cfgAsAdmin.status === 200, `status=${cfgAsAdmin.status}`);
+
+  // Admin Members list → 200 + a real users array (at least the three seeded).
+  const usersAsAdmin = await ac.req('GET', '/api/admin/users');
+  ok(
+    'admin → GET /api/admin/users → 200 + users[]',
+    usersAsAdmin.status === 200 && Array.isArray(usersAsAdmin.json?.users) && usersAsAdmin.json.users.length >= 1,
+    `status=${usersAsAdmin.status} count=${usersAsAdmin.json?.users?.length}`,
+  );
+  // Safety: the list must never leak password hashes.
+  ok(
+    'admin users list omits password_hash',
+    Array.isArray(usersAsAdmin.json?.users) && usersAsAdmin.json.users.every((u) => !('passwordHash' in u) && !('password_hash' in u)),
+  );
 
   // --- Profile + password self-service (analyst) ---------------------------
   const pc = makeClient();

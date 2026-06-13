@@ -1,15 +1,26 @@
 <script setup>
+import { computed } from 'vue'
 import { useAgentStore } from '../../stores/agent.js'
+import { useAuthStore } from '../../stores/auth.js'
 
 const agent = useAgentStore()
+const auth = useAuthStore()
 
-const NAV = [
-  { to: { name: 'dossiers' }, icon: 'folder_open', label: 'Dossiers' },
-  { to: { name: 'parties' }, icon: 'groups', label: 'Parties' },
-  { to: { name: 'watchlist' }, icon: 'visibility', label: 'Watchlist' },
-  { to: { name: 'audit' }, icon: 'history', label: 'Audit log' },
-  { to: { name: 'settings' }, icon: 'settings', label: 'Settings' },
-]
+// Admin entry is appended only for admin-tier users; the /admin route is also
+// guarded server-side and in the router beforeEach.
+const NAV = computed(() => {
+  const items = [
+    { to: { name: 'dossiers' }, icon: 'folder_open', label: 'Dossiers' },
+    { to: { name: 'parties' }, icon: 'groups', label: 'Parties' },
+    { to: { name: 'watchlist' }, icon: 'visibility', label: 'Watchlist' },
+    { to: { name: 'audit' }, icon: 'history', label: 'Audit log' },
+    { to: { name: 'settings' }, icon: 'settings', label: 'Settings' },
+  ]
+  if (auth.hasRole('admin')) {
+    items.push({ to: { name: 'admin' }, icon: 'admin_panel_settings', label: 'Admin' })
+  }
+  return items
+})
 </script>
 
 <template>
@@ -61,6 +72,17 @@ const NAV = [
     </div>
 
     <div class="foot">
+      <a
+        href="/api/docs"
+        target="_blank"
+        rel="noopener"
+        class="nav-item nav-item--ghost"
+        aria-label="API documentation (opens in a new tab)"
+      >
+        <span class="material-symbols-outlined">api</span>
+        <span class="nav-label">API docs</span>
+        <span class="material-symbols-outlined icon-sm ext">open_in_new</span>
+      </a>
       <a href="#" class="nav-item nav-item--ghost">
         <span class="material-symbols-outlined">help</span>
         <span class="nav-label">Help center</span>

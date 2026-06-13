@@ -44,6 +44,24 @@ async function getUserById(id) {
   return row || null;
 }
 
+// Admin Members list — safe fields only (never password_hash). Ordered by
+// username for a stable display. Read path for GET /api/admin/users.
+async function listUsers() {
+  return db
+    .select({
+      id: users.id,
+      username: users.username,
+      displayName: users.displayName,
+      email: users.email,
+      role: users.role,
+      active: users.active,
+      createdAt: users.createdAt,
+      lastLoginAt: users.lastLoginAt,
+    })
+    .from(users)
+    .orderBy(asc(users.username));
+}
+
 // Idempotent insert used by the seed script: insert, or update the password /
 // role / active fields on conflict so re-seeding rotates credentials cleanly.
 
@@ -107,6 +125,7 @@ async function updateUserPassword(id, passwordHash) {
 module.exports = {
   getUserByUsername,
   getUserById,
+  listUsers,
   upsertUser,
   touchUserLogin,
   updateUserProfile,

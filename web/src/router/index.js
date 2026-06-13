@@ -13,6 +13,7 @@ import GraphPage from '../pages/GraphPage.vue'
 import WatchlistPage from '../pages/WatchlistPage.vue'
 import AuditLogPage from '../pages/AuditLogPage.vue'
 import SettingsPage from '../pages/SettingsPage.vue'
+import AdminPage from '../pages/AdminPage.vue'
 import PartyDetailPage from '../pages/PartyDetailPage.vue'
 import PartiesPage from '../pages/PartiesPage.vue'
 
@@ -40,6 +41,7 @@ const router = createRouter({
         { path: 'party/:partyId', name: 'party-detail', component: PartyDetailPage, props: true, meta: { breadcrumb: 'Party' } },
         { path: 'audit', name: 'audit', component: AuditLogPage, meta: { breadcrumb: 'Audit log' } },
         { path: 'settings', name: 'settings', component: SettingsPage, meta: { breadcrumb: 'Settings' } },
+        { path: 'admin', name: 'admin', component: AdminPage, meta: { breadcrumb: 'Admin', requiresAdmin: true } },
       ],
     },
   ],
@@ -58,6 +60,10 @@ router.beforeEach(async (to) => {
     return { name: 'signin', query: to.fullPath !== '/' ? { redirect: to.fullPath } : {} }
   }
   if (to.name === 'signin' && auth.isAuthenticated) {
+    return { name: 'dossiers' }
+  }
+  // Admin-only section: bounce non-admins back to their dossiers.
+  if (to.meta?.requiresAdmin && !auth.hasRole('admin')) {
     return { name: 'dossiers' }
   }
   return true

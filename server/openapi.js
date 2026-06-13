@@ -46,7 +46,7 @@ function buildSpec() {
     tags: [
       { name: 'auth' }, { name: 'runs' }, { name: 'dossiers' }, { name: 'screening' },
       { name: 'risk' }, { name: 'qa' }, { name: 'decision' }, { name: 'parties' },
-      { name: 'agents' }, { name: 'prompts' }, { name: 'documents' }, { name: 'meta' }, { name: 'health' },
+      { name: 'agents' }, { name: 'admin' }, { name: 'prompts' }, { name: 'documents' }, { name: 'meta' }, { name: 'health' },
     ],
     components: {
       securitySchemes: {
@@ -153,6 +153,9 @@ function buildSpec() {
       '/api/agents/{id}': { get: p('Agent detail + config version history', { tags: ['agents'], parameters: [idParam], responses: okJson }) },
       '/api/agents/{id}/config': { post: p('Save agent config — new version, activated, audited (admin)', { tags: ['agents'], parameters: [idParam], requestBody: jsonBody({ $ref: '#/components/schemas/AgentConfigSave' }), responses: { ...okJson, 400: { description: 'invalid_config (validationErrors[])' } } }) },
       '/api/agents/{id}/enabled': { post: p('Enable/disable an agent (admin; required agents refuse)', { tags: ['agents'], parameters: [idParam], requestBody: jsonBody({ type: 'object', required: ['enabled'], properties: { enabled: { type: 'boolean' } } }), responses: okJson }) },
+
+      // --- admin ----------------------------------------------------------------
+      '/api/admin/users': { get: p('Members list — application users, safe fields only (admin)', { tags: ['admin'], responses: { ...okJson, 403: { description: 'forbidden (non-admin)' } } }) },
 
       // --- prompts --------------------------------------------------------------
       '/api/prompts': { get: p('Prompt registry keys + active/latest versions', { tags: ['prompts'], responses: okJson }) },

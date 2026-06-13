@@ -51,6 +51,7 @@ const healthRoutes = require('./routes/health');
 const metaRoutes = require('./routes/meta');
 const partiesRoutes = require('./routes/parties');
 const agentsRoutes = require('./routes/agents');
+const adminRoutes = require('./routes/admin');
 const docsRoutes = require('./routes/docs');
 const { seedAgentConfigs } = require('./agents/config');
 
@@ -129,6 +130,7 @@ healthRoutes.register(app);
 metaRoutes.register(app);
 partiesRoutes.register(app, { readUserId });
 agentsRoutes.register(app);
+adminRoutes.register(app);
 docsRoutes.register(app);
 
 // Global error handler. Routes that catch and re-throw via next(err) land here,
