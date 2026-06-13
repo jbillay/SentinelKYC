@@ -11,7 +11,7 @@ name: Auto-merge
 
 on:
   pull_request:
-    types: [labeled, unlabeled, opened, reopened, ready_for_review]
+    types: [labeled, unlabeled, opened, reopened, ready_for_review, closed]
 
 permissions:
   contents: write
@@ -41,3 +41,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh pr merge "${{ github.event.pull_request.number }}" --disable-auto --repo "${{ github.repository }}" || true
+
+  cleanup:
+    name: Delete merged branch
+    runs-on: ubuntu-latest
+    # The repo setting `delete_branch_on_merge` is unreliable when the merge was
+    # armed by the github-actions bot, so guarantee deletion here. Same-repo
+    # branches only (never a fork); skip if the ref is already gone.
+    if: >-
+      github.event.action == 'closed' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Delete head branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/${{ github.event.pull_request.head.ref }}" || true

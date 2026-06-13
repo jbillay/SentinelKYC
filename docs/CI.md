@@ -26,6 +26,8 @@ Opt-in, label-driven:
 
 Remove the label to disarm. No label ⇒ nothing auto-merges.
 
+A `cleanup` job in the same workflow deletes the head branch on any merged same-repo PR (the `delete_branch_on_merge` repo setting is unreliable when the merge was armed by the github-actions bot, so the job guarantees it).
+
 ### Supporting config (one-time, applied via the GitHub API — not in the repo)
 
 - **Repo settings:** `allow_auto_merge`, `delete_branch_on_merge`, squash-only (`allow_merge_commit`/`allow_rebase_merge` off); squash commit uses the PR title + body.
