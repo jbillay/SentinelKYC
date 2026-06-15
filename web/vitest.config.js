@@ -50,12 +50,17 @@ export default defineConfig({
       //     ShareholderGraph + AgentTrail branches + FinalDecisionPanel forms +
       //     ScreeningTab filters/actions + WatchlistPage + AuditLogPage +
       //     KycCard branch push + PartyDetailPage smoke (116 tests, 1 suite).
+      //   Phase 5f+5g (2026-06-15): stmts 83.07 / br 69.77 / fn 75.05 / ln 87.06 —
+      //     AdminPage + Parties + PartyDetail + HealthIndicator + ScreeningHitPanel
+      //     (5f) and DossierViewPage + RunPage + ProcessTab (5g), authored in
+      //     parallel worktree sessions (516 tests, 18 suites). Stmts + lines now
+      //     past the 80 target; branches (need +5) and functions (need +5) remain.
       // RATCHET TARGET: web global 80 / 75 by Phase 5.
       thresholds: {
-        statements: 73,
-        branches: 54,
-        functions: 59,
-        lines: 77,
+        statements: 81,
+        branches: 67,
+        functions: 73,
+        lines: 85,
         // Per-file guards lock the well-covered pure layer.
         'src/lib/countries.js': { statements: 90, branches: 85, functions: 100, lines: 95 },
         'src/lib/api.js': { statements: 90, branches: 75, functions: 100, lines: 95 },
