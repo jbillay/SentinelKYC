@@ -13,6 +13,9 @@
 **/dist
 **/dist-ssr
 
+# Test coverage output
+**/coverage/
+
 # Runtime data root (caches, checkpoints, evidence) and legacy scratch dirs
 **/var/
 **/tmp/

@@ -20,6 +20,31 @@ jobs:
   server-tests:
     name: Server — unit + node smoke tier
     runs-on: ubuntu-latest
+    # The coverage gate runs the FULL suite — unit + the integration tier
+    # (*.int.test.mjs), which mounts the real app/repo against this Postgres.
+    # TEST_DATABASE_URL gates those suites; without it they skip and coverage
+    # falls below the floor. The DB is dedicated to this job (isolated from the
+    # server-db smoke service).
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: sentinel
+          POSTGRES_PASSWORD: sentinel
+          POSTGRES_DB: sentinelkyc_covtest
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sentinel"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # db:migrate reads DATABASE_URL; the integration harness reads
+      # TEST_DATABASE_URL (and points the app at it). Same DB, migrated once.
+      DATABASE_URL: postgres://sentinel:sentinel@localhost:5432/sentinelkyc_covtest
+      TEST_DATABASE_URL: postgres://sentinel:sentinel@localhost:5432/sentinelkyc_covtest
+      LLM_BOOT_CHECK: warn
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -28,9 +53,21 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - run: npm ci
-      # Coverage thresholds (vitest.config.mjs) gate the pure engines.
+      # Migrate the test DB so the integration suites have a schema to hit.
+      - run: npm run db:migrate -w server
+      # Lint parity with web (no-unused-vars warns in Phase 0; no-only-tests errors).
+      - run: npm run lint -w server
+      # Whole-codebase coverage gate (vitest.config.mjs, ratcheting floor) —
+      # unit + integration together.
       - run: npm run test:unit:coverage -w server
       - run: npm test -w server
+      - name: Upload server coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-coverage
+          path: server/coverage/lcov.info
+          if-no-files-found: ignore
 
   server-db:
     name: Server — migrations + DB smoke
@@ -90,7 +127,16 @@ jobs:
         working-directory: web
       - run: npx eslint .
         working-directory: web
+      # Whole-codebase web coverage gate (web/vitest.config.js, ratcheting floor).
+      - run: npm run test:unit:coverage -w web
       - run: npm run build -w web
+      - name: Upload web coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-coverage
+          path: web/coverage/lcov.info
+          if-no-files-found: ignore
 
   # Single stable required check. The branch ruleset on `main` requires only
   # this job, so renaming any job's display `name:` above never breaks merging.

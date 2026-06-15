@@ -18,6 +18,8 @@ export default defineConfig({
     },
   },
   server: {
+    // Honor PORT when set (preview/CI harnesses assign one); default stays 5173.
+    port: Number(process.env.PORT) || 5173,
     proxy: {
       // 127.0.0.1 explicitly — the server binds AF_INET only, but Node's DNS
       // resolves "localhost" to ::1 first on Windows, so a `localhost` target

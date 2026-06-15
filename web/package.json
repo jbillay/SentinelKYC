@@ -11,7 +11,9 @@
     "lint": "run-s lint:*",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/"
+    "format": "prettier --write --experimental-cli src/",
+    "test:unit": "vitest run",
+    "test:unit:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "cytoscape": "^3.33.3",
@@ -35,7 +37,12 @@
     "oxlint": "~1.60.0",
     "prettier": "3.8.3",
     "vite": "^8.0.8",
-    "vite-plugin-vue-devtools": "^8.1.1"
+    "vite-plugin-vue-devtools": "^8.1.1",
+    "@pinia/testing": "^1.0.2",
+    "@vitest/coverage-v8": "^4.1.8",
+    "@vue/test-utils": "^2.4.6",
+    "jsdom": "^25.0.1",
+    "vitest": "^4.1.8"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

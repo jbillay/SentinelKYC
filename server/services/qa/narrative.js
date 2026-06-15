@@ -17,16 +17,39 @@ const { z } = require('zod');
 
 const PARAGRAPHS_BY_TIER = { Low: 2, Medium: 4, High: 6 };
 
-const QaNarrativeSchema = z.object({
-  text: z.string().min(1).describe('Narrative text — paragraphs joined by \\n\\n'),
-});
+// One required named field per paragraph, built per tier — small models
+// (llama-3.1-8b) flatten "join paragraphs with \\n\\n" into one block and even
+// collapse a paragraphs[] array into a single element, but they cannot skip a
+// required object key. Joined back to a \n\n-separated `text` below, so the
+// stored shape is unchanged.
+function buildNarrativeSchema(paragraphCount) {
+  const shape = {};
+  for (let i = 1; i <= paragraphCount; i++) {
+    shape[`paragraph${i}`] = z
+      .string()
+      .min(1)
+      .describe(
+        `Paragraph ${i} of ${paragraphCount} — substantive prose, no markdown, no headings, no bullets.`
+      );
+  }
+  return z.object(shape);
+}
+
+// Appended after the registry prompt so the output shape stays code-owned: the
+// active prompt version in Postgres may predate this schema and still describe
+// the old { "text": string } shape.
+const OUTPUT_SHAPE_NOTE =
+  'Output format (authoritative, supersedes any earlier shape instruction): return ONLY valid JSON with the keys "paragraph1" through "paragraph{{paragraphCount}}" — one paragraph of prose per key, in order. Never merge multiple paragraphs into one key.';
 
 function paragraphsFor(tier) {
   return PARAGRAPHS_BY_TIER[tier];
 }
 
 function buildPromptBody(rawPrompt, paragraphCount) {
-  return String(rawPrompt).replace(/\{\{paragraphCount\}\}/g, String(paragraphCount));
+  return `${String(rawPrompt)}\n\n${OUTPUT_SHAPE_NOTE}`.replace(
+    /\{\{paragraphCount\}\}/g,
+    String(paragraphCount)
+  );
 }
 
 function buildInputPayload({ kycCard, screeningReport, riskAssessment, qaResult }) {
@@ -60,9 +83,15 @@ async function generateQaNarrative({ kycCard, screeningReport, riskAssessment, q
   const prompt = buildPromptBody(rawPrompt, paragraphCount);
   const input = buildInputPayload({ kycCard, screeningReport, riskAssessment, qaResult });
 
-  const out = await extractStructured(JSON.stringify(input), QaNarrativeSchema, prompt);
-  if (!out || typeof out !== 'object' || typeof out.text !== 'string' || !out.text.trim()) {
-    throw new Error('qa.narrative: LLM returned an unexpected shape (missing or empty text)');
+  const schema = buildNarrativeSchema(paragraphCount);
+  const out = await extractStructured(JSON.stringify(input), schema, prompt);
+  const cleanParagraphs = [];
+  for (let i = 1; i <= paragraphCount; i++) {
+    const p = typeof out?.[`paragraph${i}`] === 'string' ? out[`paragraph${i}`].trim() : '';
+    if (p) cleanParagraphs.push(p);
+  }
+  if (!cleanParagraphs.length) {
+    throw new Error('qa.narrative: LLM returned an unexpected shape (missing or empty paragraphs)');
   }
 
   const reasoningCfg = resolveTask('reasoning');
@@ -75,8 +104,10 @@ async function generateQaNarrative({ kycCard, screeningReport, riskAssessment, q
   }
 
   return {
-    text: out.text.trim(),
-    paragraphCount,
+    text: cleanParagraphs.join('\n\n'),
+    // Actual paragraphs returned, not the tier target — the UI header shows
+    // this count and must match what renders.
+    paragraphCount: cleanParagraphs.length,
     tier,
     model: `${reasoningCfg.provider}:${reasoningCfg.model}`,
     promptVersionId,
@@ -86,7 +117,7 @@ async function generateQaNarrative({ kycCard, screeningReport, riskAssessment, q
 
 module.exports = {
   generateQaNarrative,
-  QaNarrativeSchema,
+  buildNarrativeSchema,
   PARAGRAPHS_BY_TIER,
   paragraphsFor,
 };

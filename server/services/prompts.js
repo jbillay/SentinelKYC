@@ -165,7 +165,7 @@ const DEFAULTS = {
       '4. The recommendation paragraph must agree with qaResult.routing.caseStatus: auto_approved → recommend approval; streamlined_review → recommend approval subject to conditions; standard_review → set out what blocks approval. Never contradict the engine.',
       '5. Cite numeric risk score, tier, and matrix version when they are present in the input.',
       '',
-      'Return ONLY valid JSON conforming exactly to the schema { "text": string }. The "text" field is the full narrative with paragraphs joined by "\\n\\n".',
+      'Return ONLY valid JSON with the keys "paragraph1" through "paragraph{{paragraphCount}}" — one paragraph of prose per key, in order. Never merge multiple paragraphs into one key.',
     ].join('\n'),
   },
   'risk.normalize_country': {

@@ -8,6 +8,7 @@
 | [SCREENING_PLAN.md](architecture/SCREENING_PLAN.md) | Screening subsystem design (sanctions, adverse media, overrides) |
 | [IMPLEMENTATION.md](architecture/IMPLEMENTATION.md) | Phase tracker; detailed risk-assessment ("Phase 3") and QA/decision ("Phase 5") design |
 | [entity-resolution.md](architecture/entity-resolution.md) | Per-run entity confirmation scoring |
+| [TEST_STRATEGY.md](architecture/TEST_STRATEGY.md) | Test harness assessment + phased plan to 80% whole-codebase coverage + quality gates |
 | [server/db/SETUP.md](../server/db/SETUP.md) | One-time native Postgres setup (Windows) |
 | [server/eval/README.md](../server/eval/README.md) | R3 eval harness — golden-set quality scoring |
 | [CI.md](CI.md) | CI gate (`ci.yml`) + label-driven auto-merge + branch ruleset |

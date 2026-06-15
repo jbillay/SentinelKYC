@@ -80,7 +80,7 @@ function detectionLeft(d) {
 function flattenDetections(detections) {
   const floor = confidenceFloor();
   const kept = (detections || [])
-    .filter((d) => (Number(d?.text_prediction?.confidence) ?? 0) >= floor)
+    .filter((d) => (Number(d?.text_prediction?.confidence) || 0) >= floor)
     .map((d) => ({ text: String(d?.text_prediction?.text ?? '').trim(), top: detectionTop(d), left: detectionLeft(d) }))
     .filter((d) => d.text.length > 0)
     .sort((a, b) => a.top - b.top || a.left - b.left);

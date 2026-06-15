@@ -196,7 +196,7 @@ async function downloadDocumentToFile(documentId, companyNumber, transactionId, 
 
 function documentIdFromMetadataLink(link) {
   if (!link) return null;
-  const match = String(link).match(/\/document\/([^\/?#]+)/);
+  const match = String(link).match(/\/document\/([^/?#]+)/);
   const id = match ? match[1] : null;
   // Validate the captured id matches the same shape used everywhere else
   // (alphanumeric + _ + -). A malformed link should return null rather than

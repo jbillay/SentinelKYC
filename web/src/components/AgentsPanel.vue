@@ -108,7 +108,7 @@ function onReset(agent) {
         </label>
       </div>
 
-      <div v-if="agent.fields.length" class="fields agent-fields">
+      <div v-if="agent.fields.length && drafts[agent.id]" class="fields agent-fields">
         <label v-for="field in agent.fields" :key="field.key" class="field">
           <span class="t-label">{{ field.label }}</span>
 
