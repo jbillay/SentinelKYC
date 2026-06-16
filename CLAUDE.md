@@ -130,8 +130,15 @@ npm run users:seed                # seed analyst/reviewer/admin from SEED_*_PASS
 npm run auth:smoke                # boots the app on a test port; exercises login/CSRF/role-guard matrix
 npm run db:smoke                  # round-trip a synthetic dossier
 npm test                          # smoke-all.js node-only tier (no DB/LLM); smoke:all adds DB tier; smoke:full adds LLM/app tier
-npm run test:unit                 # Vitest unit tests over the pure engines (server/test/*.test.mjs); :coverage adds v8 coverage
+npm run test:unit                 # Vitest unit tier (server/test/*.test.mjs); integration *.int.test.mjs skip without TEST_DATABASE_URL
+# integration tier (routes + DB repos): needs a THROWAWAY test DB — never the dev DB (it truncates).
+#   createdb kyc_poc_test && DATABASE_URL=postgres://USER:PW@localhost:5432/kyc_poc_test npm run db:migrate
+#   TEST_DATABASE_URL=postgres://USER:PW@localhost:5432/kyc_poc_test npm run test:unit:coverage   # full suite + coverage gate
+npm run lint                      # server ESLint (CI gate; no-only-tests errors, no-unused-vars warns — flip deferred: retiring scripts + WIP)
 npm run checkpoints:reap          # delete LangGraph checkpoints for long-terminal runs + VACUUM
+
+# web (port 5173)
+cd web && npm run test:unit       # Vitest + @vue/test-utils + jsdom; :coverage adds whole-codebase v8 coverage (ratcheting gate)
 
 # eval harness (R3) — golden-set quality scoring; see server/eval/README.md
 npm run eval                      # score extraction/sanctions/adverse-media against the golden corpus (needs DB + LLM)
@@ -146,7 +153,7 @@ ollama pull llama3.1:8b
 
 ## CI & merging
 
-`.github/workflows/ci.yml` gates every PR (4 required checks: gitleaks; server unit+coverage+node smoke; server migrations + DB smoke incl. `auth:smoke` against a Postgres service; web lint+build). No LLM on CI — `smoke:full`/`eval` are local/nightly only. **Direct pushes to `main` are blocked** by a branch ruleset (require-a-PR + the 4 checks; admins bypass) — land changes via a PR. **Auto-merge is opt-in:** add the `automerge` label to a PR and `.github/workflows/automerge.yml` squash-merges it + deletes the branch once CI is green. **Gotcha:** the ruleset pins required checks by exact job `name` — rename a CI job and you must update the ruleset or auto-merge waits forever. Full detail: `docs/CI.md`.
+`.github/workflows/ci.yml` gates every PR via four jobs aggregated into a single required check, **`CI gate`** (a `needs:`-fanin job — so individual jobs can be renamed freely; only `CI gate` is pinned by the ruleset). Jobs: gitleaks; **server** (`lint` + whole-codebase unit coverage + node smoke tier + coverage artifact); **server-db** (migrations + DB smoke incl. `auth:smoke` against a Postgres service); **web** (oxlint + eslint + whole-codebase unit coverage + build + coverage artifact). No LLM on CI — `smoke:full`/`eval` are local/nightly only. **Direct pushes to `main` are blocked** by a branch ruleset (require-a-PR + `CI gate`; admins bypass) — land changes via a PR. **Auto-merge is opt-in:** add the `automerge` label and `.github/workflows/automerge.yml` squash-merges + deletes the branch once CI is green. **To make a NEW job block merges, add its job-id to `ci-gate.needs`** (renaming a job's display `name` no longer breaks anything). Full detail: `docs/CI.md`.
 
 ## Agent configuration & toggles (v0.1 Phases 1+2)
 
@@ -442,7 +449,7 @@ The reasoning LLM is *not* used as a tie-breaker — the deterministic path is t
 - No iXBRL parsing — PDFs only.
 - No retry-with-backoff infra beyond the one JSON-retry on extraction + GDELT retries.
 - No token-level streaming to the UI — node-level SSE events are sufficient.
-- Testing has three tiers, each with a job: **Vitest unit tests** (`server/test/*.test.mjs`, pure engines only — qa, risk, sanctions matching, screening report, canonical, registry merge, secrets, decision schema; **coverage thresholds enforced in CI** — see `vitest.config.mjs`, ~80% on the pure-engine include list, ratchet upward), the `server/scripts/*-smoke.js` scripts (integration; tiered by smoke-all.js; `auth:smoke` also runs in the CI db job), and the **R3 eval harness** (`server/eval/`) — a deliberately small, frozen golden-set quality scorer (LLM-dependent: local/nightly only, never a PR gate). Don't unit-test graph nodes / routes / DB modules (that's the smoke tier's job); keep the golden corpus small (~3–10 cases per type).
+- Testing is moving to **whole-codebase ≥ 80% coverage** (server + web) per the phased plan in `docs/architecture/TEST_STRATEGY.md`. **This supersedes the old "pure engines only / don't unit-test graph nodes, routes, DB modules" guard** — those layers are now in-scope (graph nodes unit-tested with mocked LLM/registry; routes + DB repos as integration tests against the CI Postgres service; web via Vitest + @vue/test-utils + jsdom). Tiers: **Vitest unit** (`server/test/*.test.mjs`, `web/test/*.test.js`); **integration** (real Postgres, LLM/CH/GDELT mocked via `server/test/helpers/*` — replacing the DB-tier `*-smoke.js` scripts as they're converted); the **R3 eval harness** (`server/eval/`) stays a small frozen golden-set LLM scorer (local/nightly, never a PR gate). Coverage is whole-codebase (`coverage.all`, see `server/vitest.config.mjs` + `web/vitest.config.js`) with a **ratcheting floor** raised each phase — never lowered. `npm run lint -w server` is a CI gate (parity with web). Keep the golden corpus small (~3–10 cases per type).
 - **Screening v1 explicitly excludes**: PEP screening, recursive ownership-chain walking, authorized signatories, historical sanctions list versioning / re-screen-as-of-date, LLM alias generation, multilingual name matching beyond Latin transliteration, screening in the run-diff view. See `docs/architecture/SCREENING_PLAN.md` §11.
 
 ## Hard environment constraints

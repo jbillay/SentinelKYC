@@ -21,8 +21,15 @@ const TIER_KEY = computed(() => {
 const paragraphs = computed(() => {
   const text = props.narrative?.text
   if (!text || typeof text !== 'string') return []
-  return text
+  const byBlankLine = text
     .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+  if (byBlankLine.length > 1) return byBlankLine
+  // Older runs stored the narrative as one block (the model dropped the \n\n
+  // separators); fall back to single newlines so they still read as paragraphs.
+  return text
+    .split(/\n/)
     .map((p) => p.trim())
     .filter(Boolean)
 })

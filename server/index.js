@@ -55,6 +55,12 @@ const adminRoutes = require('./routes/admin');
 const docsRoutes = require('./routes/docs');
 const { seedAgentConfigs } = require('./agents/config');
 
+// Build the Express app — all middleware + route wiring, NO side effects (no
+// LLM probe, no reapers, no listen, no process.exit). `start()` calls this then
+// does the boot work; integration tests import it to mount the real pipeline
+// against a test Postgres with the external boundaries mocked. See
+// docs/architecture/TEST_STRATEGY.md §6.4.
+function buildApp() {
 const app = express();
 
 // Security headers (Phase 4). CSP is off: this process serves JSON plus the
@@ -157,10 +163,14 @@ app.use((err, req, res, _next) => {
   res.status(500).json({ error: 'internal_error' });
 });
 
+  return app;
+}
+
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '127.0.0.1';
 
 async function start() {
+  const app = buildApp();
   try {
     await promptsService.seedPrompts();
     log.info('[prompts] registry seeded');
@@ -280,7 +290,14 @@ async function start() {
   });
 }
 
-start().catch((err) => {
-  log.error({ err }, '[fatal] startup failed');
-  process.exit(1);
-});
+// Only boot when run directly (node index.js). Importing this module — e.g. an
+// integration test pulling in buildApp — must NOT probe the LLM, start reapers,
+// or bind a port.
+if (require.main === module) {
+  start().catch((err) => {
+    log.error({ err }, '[fatal] startup failed');
+    process.exit(1);
+  });
+}
+
+module.exports = { buildApp, start };

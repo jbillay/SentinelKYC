@@ -21,6 +21,18 @@ export default defineConfig([
     },
   },
 
+  // Build/test config files run in Node, not the browser — give them Node
+  // globals (process, etc.) so `process.env.PORT` and friends don't trip no-undef.
+  {
+    name: 'app/config-files',
+    files: ['**/*.config.{js,mjs}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+
   js.configs.recommended,
   ...pluginVue.configs['flat/essential'],
 

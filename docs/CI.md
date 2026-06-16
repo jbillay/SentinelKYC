@@ -9,9 +9,9 @@ Runs on every `pull_request` and on push to `main`. Four work jobs plus one aggr
 | Job | What it does | Needs |
 |---|---|---|
 | `Secret scan (gitleaks)` | gitleaks over the full history | — |
-| `Server — unit + node smoke tier` | `test:unit:coverage` (coverage thresholds) + `npm test` (node-only smokes) | — |
+| `Server — unit + node smoke tier` | `lint` (ESLint) + `test:unit:coverage` (whole-codebase coverage gate — unit **and** integration `*.int.test.mjs` via `TEST_DATABASE_URL`) + `npm test` (node-only smokes) + coverage artifact | Postgres (dedicated CI service) |
 | `Server — migrations + DB smoke` | `db:migrate` → `db:smoke` → `users:seed` → `auth:smoke` against a Postgres service | Postgres (CI service container) |
-| `Web — lint + build` | oxlint + eslint + `vite build` | — |
+| `Web — lint + build` | oxlint + eslint + `test:unit:coverage` (whole-codebase coverage gate) + `vite build` + coverage artifact | — |
 | `CI gate` | `needs:` all four; fails unless every one succeeded. **The only check the `main` ruleset requires.** | the four above |
 
 The ruleset requires **only `CI gate`** (one stable name), so renaming any work job's display `name:` never breaks merging. No LLM runs on CI runners (`LLM_BOOT_CHECK=warn`); the LLM/eval tiers (`smoke:full`, `eval`) are local/nightly only, never a PR gate.

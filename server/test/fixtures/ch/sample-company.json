@@ -1,0 +1,48 @@
+{
+  "_note": "Sanitised Companies-House-shaped fixture for registry-mocked tests. Add more under test/fixtures/ch/ as graph-node suites land (TEST_STRATEGY §5.2).",
+  "profile": {
+    "company_name": "ACME WIDGETS LTD",
+    "company_number": "01234567",
+    "company_status": "active",
+    "type": "ltd",
+    "date_of_creation": "2010-06-01",
+    "registered_office_address": {
+      "address_line_1": "1 Example Street",
+      "locality": "London",
+      "postal_code": "EC1A 1AA",
+      "country": "England"
+    },
+    "sic_codes": ["62012"]
+  },
+  "officers": {
+    "items": [
+      {
+        "name": "SMITH, John",
+        "officer_role": "director",
+        "appointed_on": "2010-06-01",
+        "nationality": "British",
+        "date_of_birth": { "month": 4, "year": 1975 }
+      }
+    ]
+  },
+  "psc": {
+    "items": [
+      {
+        "name": "John Smith",
+        "kind": "individual-person-with-significant-control",
+        "nationality": "British",
+        "natures_of_control": ["ownership-of-shares-75-to-100-percent"]
+      }
+    ]
+  },
+  "filings": {
+    "items": [
+      {
+        "transaction_id": "AAA111",
+        "category": "confirmation-statement",
+        "date": "2024-06-15",
+        "links": { "document_metadata": "https://document-api.company-information.service.gov.uk/document/DOC-CS-1" }
+      }
+    ]
+  }
+}
