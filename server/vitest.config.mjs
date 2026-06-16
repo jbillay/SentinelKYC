@@ -21,7 +21,7 @@ export default defineConfig({
     environment: 'node',
     // Dummy CH key so modules that load services/ch.js (which throws at import
     // if CH_API_KEY is unset) are importable in CI — tests mock the actual HTTP.
-    env: { CH_API_KEY: process.env.CH_API_KEY || 'test-ci-key' },
+    env: { CH_API_KEY: 'test-ci-key' },
     include: ['test/**/*.test.mjs'],
     // Integration suites (*.int.test.mjs) share one test Postgres and TRUNCATE
     // between tests — running files in parallel races those truncations. Run
