@@ -35,7 +35,7 @@ describe('useDossiers', () => {
     fetch
       .mockResolvedValueOnce(ok([{ companyNumber: '01234567' }]))
       .mockResolvedValueOnce(ok({ total: 1 }))
-    const { dossiers, kpis, loading } = useDossiers()
+    const { dossiers, loading } = useDossiers()
     expect(loading.value).toBe(true)
     await nextTick()
     await new Promise((r) => setTimeout(r, 0))
@@ -310,7 +310,7 @@ describe('useRunDetail', () => {
     await nextTick()
     await new Promise((r) => setTimeout(r, 0))
     fetch.mockResolvedValue(ok({ id: 'run-1', status: 'done', refreshed: true }))
-    const { run } = useRunDetail('01234567', 'run-1')
+    useRunDetail('01234567', 'run-1')
     await refresh()
     expect(fetch).toHaveBeenCalledTimes(3)
   })

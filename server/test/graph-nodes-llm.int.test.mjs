@@ -80,7 +80,8 @@ describeIntegration('assessRisk (LLM fallback to template)', () => {
 
   it('falls back to templateRationale when the LLM is unreachable', async () => {
     const out = await assessRisk(RISK_STATE, { configurable: { runId: 'test-run-assess-2' } });
-    expect(out.riskAssessment.rationaleSource).toBe('template');
+    // rationaleSource lives on the fragment's outputs (assessRisk.js), not on riskAssessment.
+    expect(out.fragments.at(-1).outputs.rationaleSource).toBe('template');
   });
 
   it('populates the receipt with factor breakdown', async () => {

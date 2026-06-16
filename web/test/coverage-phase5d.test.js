@@ -413,7 +413,6 @@ describe('ProcessTab — additional coverage', () => {
   it('shows Fit button', async () => {
     const w = mountC(ProcessTab)
     await new Promise((r) => setTimeout(r, 20))
-    const fit = w.find('.proc-fit')
     // May or may not be visible depending on canvas; just check it renders
     expect(w.html().length).toBeGreaterThan(50)
   })

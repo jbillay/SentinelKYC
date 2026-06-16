@@ -3,7 +3,7 @@
 //
 // Covered: SearchForm, CandidateDisambiguation, NotFound, QaNarrative,
 //          FinalDecisionPanelReadOnly.
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import SearchForm from '@/components/SearchForm.vue'
 import CandidateDisambiguation from '@/components/CandidateDisambiguation.vue'

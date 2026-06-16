@@ -16,7 +16,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
-import { ref, nextTick } from 'vue'
+import { nextTick } from 'vue'
 
 // ── Global mocks (hoisted before any imports) ───────────────────────────────
 vi.mock('cytoscape', () => {
@@ -786,7 +786,6 @@ describe('PartyDetailPage', () => {
   })
 
   it('shows the loading placeholder when party not yet loaded', () => {
-    partyState && undefined // ensure mock evaluated by mounting
     const w = mountPartyDetail()
     partyState.party.value = null
     partyState.loading.value = true

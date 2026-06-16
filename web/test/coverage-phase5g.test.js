@@ -88,8 +88,8 @@ function mountPage(component, options = {}) {
   return mount(component, {
     global: {
       plugins: [getPinia()],
-      stubs: { ...PAGE_STUBS, ...(options.stubs || {}) },
-      ...(options.global || {}),
+      stubs: { ...PAGE_STUBS, ...options.stubs },
+      ...options.global,
     },
     attachTo: document.body,
     ...options,

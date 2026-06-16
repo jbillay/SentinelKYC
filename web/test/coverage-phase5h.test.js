@@ -79,7 +79,7 @@ const flush = (ms = 25) => new Promise((r) => setTimeout(r, ms))
 function mountC(component, props = {}, options = {}) {
   return mount(component, {
     props,
-    global: { plugins: [getPinia()], ...(options.global || {}) },
+    global: { plugins: [getPinia()], ...options.global },
     attachTo: document.body,
     ...options,
   })
@@ -144,7 +144,7 @@ describe('PartyGraph', () => {
   })
 
   it('tap on a non-centre individual node navigates to party detail', async () => {
-    const w = mountC(PartyGraph, { graph: POP_GRAPH })
+    mountC(PartyGraph, { graph: POP_GRAPH })
     await nextTick()
     const nodeTap = await getNodeTap()
     nodeTap({ target: { data: () => ({ kind: 'individual', partyId: 'p2', isCenter: false }) } })
@@ -152,7 +152,7 @@ describe('PartyGraph', () => {
   })
 
   it('tap on an organisation node navigates to party detail', async () => {
-    const w = mountC(PartyGraph, { graph: POP_GRAPH })
+    mountC(PartyGraph, { graph: POP_GRAPH })
     await nextTick()
     const nodeTap = await getNodeTap()
     nodeTap({ target: { data: () => ({ kind: 'organisation', partyId: 'p3', isCenter: false }) } })
@@ -160,7 +160,7 @@ describe('PartyGraph', () => {
   })
 
   it('tap on the centre node does NOT navigate', async () => {
-    const w = mountC(PartyGraph, { graph: POP_GRAPH })
+    mountC(PartyGraph, { graph: POP_GRAPH })
     await nextTick()
     const nodeTap = await getNodeTap()
     nodeTap({ target: { data: () => ({ kind: 'individual', partyId: 'p1', isCenter: true }) } })
@@ -168,7 +168,7 @@ describe('PartyGraph', () => {
   })
 
   it('tap on a node with no data is a no-op', async () => {
-    const w = mountC(PartyGraph, { graph: POP_GRAPH })
+    mountC(PartyGraph, { graph: POP_GRAPH })
     await nextTick()
     const nodeTap = await getNodeTap()
     nodeTap({ target: { data: () => null } })
@@ -176,7 +176,7 @@ describe('PartyGraph', () => {
   })
 
   it('tap on a dossier node without a companyNumber does not navigate', async () => {
-    const w = mountC(PartyGraph, { graph: POP_GRAPH })
+    mountC(PartyGraph, { graph: POP_GRAPH })
     await nextTick()
     const nodeTap = await getNodeTap()
     nodeTap({ target: { data: () => ({ kind: 'dossier' }) } })
@@ -311,7 +311,7 @@ describe('DataModelTab', () => {
     expect(html).toContain('Officers') // $ref stripped
     expect(html).toContain('object | null') // anyOf
     expect(html).toContain('enum(active | dissolved)')
-    expect(html).toContain('array&lt;object&gt;') || expect(html).toContain('array<object>')
+    expect(html.includes('array&lt;object&gt;') || html.includes('array<object>')).toBe(true)
     expect(html).toContain('string | number') // oneOf
   })
 
@@ -859,8 +859,6 @@ describe('useRun', () => {
 })
 
 // ─── ScreeningEvidenceCard (pure prop-driven branches) ──────────────────────────
-
-const SCR_STUBS = {} // none needed
 
 function screening(over = {}) {
   return {

@@ -7,7 +7,7 @@
 //
 // Pattern: mock cytoscape + vue-router at module level (hoisted); activate a
 // fresh pinia in beforeEach; mount with global stubs for complex children.
-import { describe, it, expect, vi, beforeEach, nextTick } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia, getActivePinia } from 'pinia'
 
@@ -479,8 +479,6 @@ describe('SideNav', () => {
 
 // ─── TopBar ───────────────────────────────────────────────────────────────────
 
-import TopBar from '@/components/layout/TopBar.vue'
-
 describe('TopBar', () => {
   it('renders the breadcrumb text when provided', () => {
     const auth = useAuthStore()
@@ -531,8 +529,6 @@ describe('PartyGraph', () => {
 
 // ─── FinalDecisionPanel ───────────────────────────────────────────────────────
 
-import { useDecisionStore } from '@/stores/decision.js'
-
 const QA_RESULT = {
   routing: { caseStatus: 'standard_review', qaSummary: 'Issues flagged.' },
   highlightedIssues: [{ code: 'ubo_not_screened', severity: 'high', message: 'UBO not screened.' }],
@@ -549,7 +545,7 @@ describe('FinalDecisionPanel', () => {
       caseStatus: 'standard_review',
     })
     const html = w.html()
-    expect(html).toContain('Approve') || expect(html).toContain('Reject') || expect(html.length).toBeGreaterThan(10)
+    expect(html.includes('Approve') || html.includes('Reject') || html.length > 10).toBe(true)
   })
 
   it('does not render action buttons when qaResult is null', () => {

@@ -12,7 +12,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
-import { ref, nextTick } from 'vue'
+import { nextTick } from 'vue'
 
 // ── Global mocks (hoisted) ──────────────────────────────────────────────────
 vi.mock('cytoscape', () => {
