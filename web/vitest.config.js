@@ -55,12 +55,16 @@ export default defineConfig({
       //     (5f) and DossierViewPage + RunPage + ProcessTab (5g), authored in
       //     parallel worktree sessions (516 tests, 18 suites). Stmts + lines now
       //     past the 80 target; branches (need +5) and functions (need +5) remain.
-      // RATCHET TARGET: web global 80 / 75 by Phase 5.
+      //   Phase 5h (2026-06-15): stmts 88.33 / br 75.92 / fn 80.93 / ln 91.74 —
+      //     PartyGraph + DataModelTab + AgentsPanel + RiskAssessmentCard +
+      //     Screening/LiveEvidenceCard + WatchlistPage + SearchPage + composable
+      //     branch/fn cleanup (610 tests, 19 suites). ALL FOUR TARGETS CLEARED.
+      // RATCHET TARGET (MET): web global 80 / 75.
       thresholds: {
-        statements: 81,
-        branches: 67,
-        functions: 73,
-        lines: 85,
+        statements: 86,
+        branches: 73,
+        functions: 78,
+        lines: 89,
         // Per-file guards lock the well-covered pure layer.
         'src/lib/countries.js': { statements: 90, branches: 85, functions: 100, lines: 95 },
         'src/lib/api.js': { statements: 90, branches: 75, functions: 100, lines: 95 },
