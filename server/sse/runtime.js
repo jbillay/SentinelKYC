@@ -654,6 +654,7 @@ async function rebuildScreeningReport(run) {
 }
 
 module.exports = {
+  RunRegistry,
   registry,
   emitDelta,
   runGraph,

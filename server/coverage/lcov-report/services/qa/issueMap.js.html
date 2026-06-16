@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50% </span>
+                <span class="strong">75% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>10/20</span>
+                <span class='fraction'>15/20</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">57.14% </span>
+                <span class="strong">85.71% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>8/14</span>
+                <span class='fraction'>12/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/2</span>
+                <span class='fraction'>0/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">52.63% </span>
+                <span class="strong">78.94% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>10/19</span>
+                <span class='fraction'>15/19</span>
             </div>
         
             
@@ -251,17 +251,37 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">31x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -269,27 +289,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
@@ -368,11 +368,11 @@ const ISSUE_MAP = {
 };
 &nbsp;
 function <span class="fstat-no" title="function not covered" >describe(</span>code) {
-<span class="cstat-no" title="statement not covered" >  if (!code) <span class="cstat-no" title="statement not covered" >return null;</span></span>
+<span class="cstat-no" title="statement not covered" >  if (!code) return null;</span>
   // Match the `document_status:&lt;category&gt;:failed` warning prefix.
-<span class="cstat-no" title="statement not covered" >  if (code.startsWith('document_status:')) {</span>
-    const parts = <span class="cstat-no" title="statement not covered" >code.split(':');</span>
-    const category = <span class="cstat-no" title="statement not covered" >parts[1] || 'document';</span>
+  if (code.startsWith('document_status:')) {
+    const parts = code.split(':');
+    const category = parts[1] || 'document';
     return {
       ...ISSUE_MAP.document_status,
       message: `Filing "${category}" failed to extract.`,
@@ -386,19 +386,19 @@ function <span class="fstat-no" title="function not covered" >describe(</span>co
 }
 &nbsp;
 // Build the UI-ready highlightedIssues array from raw check output.
-function buildHighlightedIssues({ missing = [], warnings = [], issues = [] } = {}) {
-  const out = [];
-  for (const code of missing) {
-    const desc = <span class="cstat-no" title="statement not covered" >describe(code);</span>
-<span class="cstat-no" title="statement not covered" >    out.push({ code, severity: desc.severity, message: desc.message, anchor: desc.anchor });</span>
+function <span class="fstat-no" title="function not covered" >buildHighlightedIssues(</span>{ missing = <span class="branch-0 cbranch-no" title="branch not covered" >[],</span> warnings = [], issues = [] } = {}) {
+  const out = <span class="cstat-no" title="statement not covered" >[];</span>
+<span class="cstat-no" title="statement not covered" >  for (const code of missing) {</span>
+    const desc = describe(code);
+    out.push({ code, severity: desc.severity, message: desc.message, anchor: desc.anchor });
   }
-  for (const code of warnings) {
-    const desc = <span class="cstat-no" title="statement not covered" >describe(code);</span>
-<span class="cstat-no" title="statement not covered" >    out.push({ code, severity: desc.severity, message: desc.message, anchor: desc.anchor });</span>
+<span class="cstat-no" title="statement not covered" >  for (const code of warnings) {</span>
+    const desc = describe(code);
+    out.push({ code, severity: desc.severity, message: desc.message, anchor: desc.anchor });
   }
-  for (const it of issues) {
+<span class="cstat-no" title="statement not covered" >  for (const it of issues) {</span>
     const desc = describe(it.code);
-<span class="cstat-no" title="statement not covered" >    out.push({</span>
+    out.push({
       code: it.code,
       severity: desc.severity,
       message: it.message || desc.message,
@@ -421,7 +421,7 @@ module.exports = {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-15T19:52:47.621Z
+                at 2026-06-15T20:24:33.095Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
