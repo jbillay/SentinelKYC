@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">64.7% </span>
+                <span class="strong">72.54% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>33/51</span>
+                <span class='fraction'>37/51</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">66.15% </span>
+                <span class="strong">70.76% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>43/65</span>
+                <span class='fraction'>46/65</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">68.08% </span>
+                <span class="strong">74.46% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>32/47</span>
+                <span class='fraction'>35/47</span>
             </div>
         
             
@@ -234,36 +234,36 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -271,8 +271,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -307,9 +307,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -404,13 +404,13 @@ function checkConsistency(projection = {}) {
   );
   const missingSubjects = [];
   for (const ubo of screeningSkipped ? [] : projection.ubo_list || []) {
-    const hasPartyMatch = <span class="cstat-no" title="statement not covered" >ubo?.partyId &amp;&amp; screenedPartyIds.has(ubo.partyId);</span>
-    const hasNameMatch = <span class="cstat-no" title="statement not covered" >ubo?.normalizedName &amp;&amp; screenedNames.has(ubo.normalizedName);</span>
-<span class="cstat-no" title="statement not covered" >    if (<span class="branch-0 cbranch-no" title="branch not covered" >hasPartyMatch </span>|| hasNameMatch) continue;</span>
+    const hasPartyMatch = ubo?.partyId &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >screenedPartyIds.has(ubo.partyId);</span>
+    const hasNameMatch = ubo?.normalizedName &amp;&amp; screenedNames.has(ubo.normalizedName);
+    if (hasPartyMatch || hasNameMatch) continue;
     if (!ubo?.normalizedName &amp;&amp; !ubo?.partyId) continue;
     missingSubjects.push(ubo.name);
   }
-<span class="cstat-no" title="statement not covered" >  if (missingSubjects.length &gt; 0) {</span>
+  if (missingSubjects.length &gt; 0) {
     issues.push({
       code: 'ubo_not_screened',
       message: `${missingSubjects.length} UBO(s) not present in screening results`,
@@ -511,7 +511,7 @@ module.exports = {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-15T20:24:33.095Z
+                at 2026-06-25T12:46:31.847Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

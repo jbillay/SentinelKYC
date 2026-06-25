@@ -132,16 +132,14 @@ describeIntegration('entityResolution (DB — loads agent config)', () => {
 
   it('needs_user_pick when top score < 0.85', async () => {
     const candidates = [
-      { companyNumber: '00000001', title: 'WIDGET CO LTD', dateOfCreation: '2010-01-01', score: 0.5 },
-      { companyNumber: '00000002', title: 'WIDGETS INC', dateOfCreation: '2012-01-01', score: 0.3 },
+      { companyNumber: '00000001', title: 'WIDGET CO LTD', dateOfCreation: '2010-01-01', apiRank: 0 },
+      { companyNumber: '00000002', title: 'WIDGETS INC', dateOfCreation: '2012-01-01', apiRank: 1 },
     ];
-    // Pre-scored candidates (score already attached — entityResolution re-scores them)
-    // We need a real input name. Use the state.companyName to anchor scoring.
     const out = await entityResolution(
-      { candidates: candidates.map((c) => ({ ...c })), companyName: 'Completely Different Name' },
+      { candidates, input: { name: 'Completely Different Name' } },
       { configurable: {} },
     );
-    expect(['needs_user_pick', 'auto_match']).toContain(out.resolution?.status);
+    expect(out.resolution?.status).toBe('needs_user_pick');
   });
 
   it('emits a trace event', async () => {
@@ -158,14 +156,14 @@ describeIntegration('entityResolution (DB — loads agent config)', () => {
         title: 'ACME LTD',
         dateOfCreation: '2015-06-01',
         address: {},
-        score: 0,
+        apiRank: 0,
       },
     ];
     const out = await entityResolution(
-      { candidates, companyNumber: cn },
+      { candidates, input: { companyNumber: cn } },
       { configurable: {} },
     );
-    // Company-number exact match gives +1.0 boost → auto_match
+    // Company-number exact match (+1.0) plus base (1.0) → score 2.0 ≥ threshold → auto_match
     expect(out.resolution?.status).toBe('auto_match');
   });
 });

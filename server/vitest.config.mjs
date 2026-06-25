@@ -60,6 +60,11 @@ export default defineConfig({
       //   Phase 5 (untested-but-easy): stmts ~44.5 / br ~34.2 / fn ~45.3 / ln ~47.0
       //     (11 new suites: repo-users/screening/qa/fragments +
       //      routes-auth/health/prompts/screening/qa/runs/decision).
+      //   S1+S2 (2026-06-25): stmts 51.52 / br 42.80 / fn 52.54 / ln 53.95 —
+      //     fixed 2 entity-resolution test bugs (wrong state shape); confirmed all
+      //     162 integration tests (18 suites: 7 repo + 11 routes) run and pass
+      //     against kyc_poc_test. Entity resolution tests now use state.input
+      //     correctly instead of top-level companyName/companyNumber.
       // NOTE the BRANCH variance (~3 pts run-to-run): v8's branch attribution on
       // `all:true` files that integration loads but doesn't fully execute is
       // nondeterministic, so floors sit a couple points BELOW the observed
@@ -68,10 +73,10 @@ export default defineConfig({
       // floor + the dedicated engine suites are the protection now.
       // RATCHET TARGET: server global 80 / 75 by final phase.
       thresholds: {
-        statements: 42,
-        branches: 31,
-        functions: 43,
-        lines: 44,
+        statements: 49,
+        branches: 40,
+        functions: 50,
+        lines: 51,
       },
     },
   },
