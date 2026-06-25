@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sanctionsData>
+  <entities>
+    <entity id="1234">
+      <generalInfo>
+        <entityType>Individual</entityType>
+      </generalInfo>
+      <names>
+        <name>
+          <isPrimary>true</isPrimary>
+          <aliasType></aliasType>
+          <translations>
+            <translation>
+              <isPrimary>true</isPrimary>
+              <script>Latin</script>
+              <formattedFullName>John Boris Doe</formattedFullName>
+            </translation>
+          </translations>
+        </name>
+        <name>
+          <isPrimary>false</isPrimary>
+          <aliasType>a.k.a.</aliasType>
+          <translations>
+            <translation>
+              <isPrimary>false</isPrimary>
+              <script>Latin</script>
+              <formattedFullName>Johnny Doe</formattedFullName>
+            </translation>
+          </translations>
+        </name>
+      </names>
+      <features>
+        <feature>
+          <type>Birthdate</type>
+          <value>1970-05-15</value>
+        </feature>
+        <feature>
+          <type>Nationality Country</type>
+          <value>Russia</value>
+        </feature>
+        <feature>
+          <type>Passport</type>
+          <value>AA1234567</value>
+        </feature>
+      </features>
+      <sanctionsPrograms>
+        <sanctionsProgram>SDN_LIST</sanctionsProgram>
+      </sanctionsPrograms>
+    </entity>
+    <entity id="5678">
+      <generalInfo>
+        <entityType>Entity</entityType>
+      </generalInfo>
+      <names>
+        <name>
+          <isPrimary>true</isPrimary>
+          <aliasType></aliasType>
+          <translations>
+            <translation>
+              <isPrimary>true</isPrimary>
+              <script>Latin</script>
+              <formattedFullName>Acme Corp Ltd</formattedFullName>
+            </translation>
+          </translations>
+        </name>
+      </names>
+      <features>
+        <feature>
+          <type>Registration Number</type>
+          <value>REG-9999</value>
+        </feature>
+      </features>
+      <sanctionsPrograms>
+        <sanctionsProgram>SDN_LIST</sanctionsProgram>
+      </sanctionsPrograms>
+    </entity>
+    <entity id="9999">
+      <!-- No primary name — should be skipped -->
+      <generalInfo>
+        <entityType>Individual</entityType>
+      </generalInfo>
+      <names>
+      </names>
+    </entity>
+  </entities>
+</sanctionsData>
