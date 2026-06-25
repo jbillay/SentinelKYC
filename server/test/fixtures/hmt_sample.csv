@@ -1,0 +1,4 @@
+Group ID,Alias Type,Group Type,Name 1,Name 2,Name 3,Name 4,Name 5,Name 6,Title,DOB,Nationality,Passport Number,NI Number,Regime,Listed On,Last Updated
+10001,Primary name,Individual,SMITH,John,Boris,,,,Mr,1975-03-20,British,AB123456,,Russia,01/01/2022,15/01/2026
+10001,AKA,Individual,SMITH,Johnny,,,,,,,,,,,
+10002,Primary name,Entity,ACME,TRADING,LTD,,,,,,,,,Ukraine Sanctions,01/06/2021,10/06/2023
