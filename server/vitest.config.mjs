@@ -28,6 +28,27 @@ export default defineConfig({
     // files sequentially (each still gets an isolated module registry). The
     // unit suites are fast, so the serial cost is small.
     fileParallelism: false,
+
+    // Per-file pool routing:
+    //   phase-s7-*  → vmThreads  (vi.doMock + vi.resetModules intercepts CJS
+    //                              require(); no graph nodes imported so the
+    //                              LangGraph SyntaxError never fires here)
+    //   everything else → default forks pool + deps.inline (transforms the
+    //                              LangGraph packages that ship ESM syntax in
+    //                              their *.cjs files)
+    poolMatchGlobs: [
+      ['test/phase-s7-*.test.mjs', 'vmThreads'],
+    ],
+
+    // deps.inline forces Vite to transform the LangGraph packages whose *.cjs
+    // files ship ESM `export` syntax. Without this, loading any graph node
+    // (which transitively requires @langchain/langgraph via graph/fragments.js)
+    // throws a SyntaxError at Node's native require() time.
+    // NOTE: deps.inline is silently ignored by vmThreads/vmForks pools; it only
+    // applies to the default forks pool used by non-S7 test files.
+    deps: {
+      inline: ['@langchain/langgraph-checkpoint', '@langchain/langgraph', 'uuid'],
+    },
     coverage: {
       provider: 'v8',
       all: true,
