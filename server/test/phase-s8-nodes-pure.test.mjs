@@ -152,7 +152,11 @@ beforeAll(async () => {
   // the mock namespace object that assessRisk.js's require also receives.
   const repoMod = await import('../db/repo');
   repo = repoMod;
-});
+  // The first import here triggers the (cold) deps.inline transform of the
+  // LangGraph packages — heavy enough to blow the default 10s hook timeout when
+  // this file runs in isolation (no warm transform cache from a sibling suite).
+  // Give the import phase room. See vitest.config.mjs deps.inline note.
+}, 60000);
 
 afterEach(() => {
   vi.restoreAllMocks();
