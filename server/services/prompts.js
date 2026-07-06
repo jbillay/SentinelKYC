@@ -2,9 +2,14 @@ const { eq, asc, desc, sql } = require('drizzle-orm');
 const { db } = require('../db/client');
 const { promptVersions, promptActive } = require('../db/schema');
 
+// Every prompt belongs to exactly one agent (agents/defs.js id) — the admin UI
+// renders each prompt inside its owning agent's section. `kyc.synthesis` and
+// `extract.json_strict_retry` are cross-cutting (spine node / retry infra) but
+// are homed under document-manager, whose extractions they operate on.
 const DEFAULTS = {
   'kyc.synthesis': {
     label: 'KYC card synthesis',
+    agent: 'document-manager',
     description:
       'Merges Companies House API data and document extractions into the unified KYC card.',
     body: [
@@ -19,6 +24,7 @@ const DEFAULTS = {
   },
   'extract.confirmation_statement': {
     label: 'Confirmation statement extraction',
+    agent: 'document-manager',
     description: 'Extracts shareholders from a confirmation statement filing.',
     body: [
       'You are extracting shareholder information from a UK Companies House confirmation statement.',
@@ -31,6 +37,7 @@ const DEFAULTS = {
   },
   'extract.accounts': {
     label: 'Accounts extraction',
+    agent: 'document-manager',
     description: 'Extracts headline financials from an annual accounts filing.',
     body: [
       'You are extracting headline financials from a UK Companies House annual accounts filing.',
@@ -42,6 +49,7 @@ const DEFAULTS = {
   },
   'extract.incorporation': {
     label: 'Incorporation extraction',
+    agent: 'document-manager',
     description: 'Extracts initial subscribers from an incorporation document.',
     body: [
       'You are extracting initial subscribers from a UK company incorporation document (Memorandum of Association or Form IN01).',
@@ -53,11 +61,13 @@ const DEFAULTS = {
   },
   'ocr.page': {
     label: 'OCR page prompt',
+    agent: 'document-manager',
     description: 'Per-page instruction sent to the vision model for document OCR.',
     body: 'Extract all text from this page as Markdown. Preserve tables, headings, and reading order. Output text only.',
   },
   'extract.json_strict_retry': {
     label: 'JSON retry prefix',
+    agent: 'document-manager',
     description:
       'Prefix prepended to the input on a retry when the LLM returns invalid JSON during structured extraction.',
     body:
@@ -65,6 +75,7 @@ const DEFAULTS = {
   },
   'screening.evaluate_sanctions_hit': {
     label: 'Sanctions hit evaluation',
+    agent: 'screening',
     description:
       'Evaluates a single fuzzy-name sanctions match as confirmed / dismissed / needs_review.',
     body: [
@@ -90,6 +101,7 @@ const DEFAULTS = {
   },
   'screening.evaluate_adverse_media': {
     label: 'Adverse media evaluation',
+    agent: 'screening',
     description:
       'Evaluates a single news article as adverse-media evidence against a screening subject — relevance, category, severity.',
     body: [
@@ -118,6 +130,7 @@ const DEFAULTS = {
   },
   'risk.rationale': {
     label: 'Risk assessment rationale',
+    agent: 'risk-assessment',
     description:
       'Turns a deterministic risk calculation receipt into a short, regulator-defensible plain-English rationale.',
     body: [
@@ -139,6 +152,7 @@ const DEFAULTS = {
   },
   'qa.narrative': {
     label: 'QA recommendation narrative',
+    agent: 'qa',
     description:
       'Generates a regulator-defensible recommendation narrative for the QA panel — paragraph count scales with risk tier (Low=2 / Medium=4 / High=6).',
     body: [
@@ -170,6 +184,7 @@ const DEFAULTS = {
   },
   'risk.normalize_country': {
     label: 'Risk country normalization',
+    agent: 'risk-assessment',
     description:
       'Maps a free-text country string from a company profile to an ISO 3166-1 alpha-2 code (or null).',
     body: [
@@ -194,6 +209,7 @@ function listKeys() {
   return Object.entries(DEFAULTS).map(([key, meta]) => ({
     key,
     label: meta.label,
+    agent: meta.agent,
     description: meta.description,
     defaultBody: meta.body,
   }));
@@ -289,6 +305,7 @@ async function listAll() {
     out.push({
       key: k.key,
       label: k.label,
+      agent: k.agent,
       description: k.description,
       activeVersion: active?.version ?? null,
       latestVersion: latest?.version ?? null,

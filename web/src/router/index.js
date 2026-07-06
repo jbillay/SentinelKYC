@@ -14,6 +14,7 @@ import WatchlistPage from '../pages/WatchlistPage.vue'
 import AuditLogPage from '../pages/AuditLogPage.vue'
 import SettingsPage from '../pages/SettingsPage.vue'
 import AdminPage from '../pages/AdminPage.vue'
+import AgentDetailPage from '../pages/AgentDetailPage.vue'
 import PartyDetailPage from '../pages/PartyDetailPage.vue'
 import PartiesPage from '../pages/PartiesPage.vue'
 
@@ -42,6 +43,7 @@ const router = createRouter({
         { path: 'audit', name: 'audit', component: AuditLogPage, meta: { breadcrumb: 'Audit log' } },
         { path: 'settings', name: 'settings', component: SettingsPage, meta: { breadcrumb: 'Settings' } },
         { path: 'admin', name: 'admin', component: AdminPage, meta: { breadcrumb: 'Admin', requiresAdmin: true } },
+        { path: 'admin/agents/:agentId', name: 'admin-agent', component: AgentDetailPage, props: true, meta: { breadcrumb: 'Agent', requiresAdmin: true } },
       ],
     },
   ],

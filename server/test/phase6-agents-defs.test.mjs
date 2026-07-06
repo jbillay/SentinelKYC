@@ -67,6 +67,17 @@ describe('agents/defs — schema edge cases', () => {
     expect(def.schema.safeParse({ ...def.defaults, gdeltTimespan: 'soon' }).success).toBe(false)
   })
 
+  it('screening enforces the migrated matchThreshold + resultsPerSubject bounds', () => {
+    const def = getAgentDef('screening')
+    expect(def.schema.safeParse({ ...def.defaults, matchThreshold: 0.4 }).success).toBe(false)
+    expect(def.schema.safeParse({ ...def.defaults, matchThreshold: 1 }).success).toBe(false)
+    expect(def.schema.safeParse({ ...def.defaults, matchThreshold: 0.9 }).success).toBe(true)
+    expect(def.schema.safeParse({ ...def.defaults, resultsPerSubject: 0 }).success).toBe(false)
+    expect(def.schema.safeParse({ ...def.defaults, resultsPerSubject: 101 }).success).toBe(false)
+    expect(def.schema.safeParse({ ...def.defaults, resultsPerSubject: 2.5 }).success).toBe(false)
+    expect(def.schema.safeParse({ ...def.defaults, resultsPerSubject: 50 }).success).toBe(true)
+  })
+
   it('risk-assessment and qa accept just { enabled }', () => {
     expect(getAgentDef('risk-assessment').schema.safeParse({ enabled: true }).success).toBe(true)
     expect(getAgentDef('qa').schema.safeParse({ enabled: false }).success).toBe(true)

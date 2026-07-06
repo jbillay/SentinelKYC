@@ -213,7 +213,7 @@ function factorAttribute(f) {
       <footer class="risk-foot">
         <RouterLink
           v-if="auth.hasRole('admin')"
-          :to="{ name: 'admin', hash: '#risk-matrix' }"
+          :to="{ name: 'admin-agent', params: { agentId: 'risk-assessment' } }"
           class="matrix-link"
         >
           Matrix v{{ matrixVersion ?? '–' }}

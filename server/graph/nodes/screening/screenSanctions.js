@@ -9,8 +9,7 @@ const crypto = require('crypto');
 const { traceEvent, errorEvent } = require('../../state');
 const { withFragment } = require('../../fragments');
 const matcher = require('../../../services/sanctions/matcher');
-const { searchSanctionsByNormalizedName, getScreeningConfig } =
-  require('../../../db/repo');
+const { searchSanctionsByNormalizedName } = require('../../../db/repo');
 
 const LIST_SOURCES = ['ofac_sdn', 'uk_hmt'];
 
@@ -27,7 +26,10 @@ const screenSanctions = withFragment('screen_sanctions', async function screenSa
     };
   }
 
-  const cfg = await getScreeningConfig();
+  // Threshold lives in the screening agent's versioned config (migrated from
+  // the legacy screening_config singleton).
+  const { loadAgentConfig } = require('../../../agents/config');
+  const cfg = await loadAgentConfig('screening');
   const threshold = cfg.matchThreshold ?? 0.85;
 
   const hits = [];

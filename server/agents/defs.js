@@ -105,13 +105,20 @@ const AGENTS = [
     schema: z
       .object({
         enabled: z.boolean(),
+        // Migrated from the legacy screening_config singleton (admin
+        // restructure) — matcher threshold + adverse-media article cap now
+        // live in this versioned config; /api/screening/config is retired.
+        matchThreshold: z.number().min(0.5).max(0.99),
+        resultsPerSubject: z.number().int().min(1).max(100),
         adverseMediaEnabled: z.boolean(),
         gdeltTimespan: z.string().regex(/^\d+[a-z]{1,6}$/i, 'e.g. 12m, 24m, 1y'),
       })
       .strict(),
-    defaults: { enabled: true, adverseMediaEnabled: true, gdeltTimespan: '12m' },
+    defaults: { enabled: true, matchThreshold: 0.85, resultsPerSubject: 20, adverseMediaEnabled: true, gdeltTimespan: '12m' },
     fields: [
+      { key: 'matchThreshold', type: 'number', min: 0.5, max: 0.99, step: 0.01, label: 'Match threshold', description: 'Minimum fuzzy name-match score (token-set ratio + phonetic fallback) for a sanctions hit. Applies to every list.' },
       { key: 'adverseMediaEnabled', type: 'boolean', label: 'Adverse media', description: 'Screen individuals against GDELT news. Sanctions screening is unaffected.' },
+      { key: 'resultsPerSubject', type: 'number', min: 1, max: 100, step: 1, label: 'News results per subject', description: 'Articles fetched per individual from the adverse-media provider.' },
       { key: 'gdeltTimespan', type: 'string', label: 'News window', description: 'GDELT rolling window, e.g. 12m, 24m.' },
     ],
     io: {

@@ -191,6 +191,36 @@ async function getAgentDetail(agentId) {
   };
 }
 
+// One-shot legacy migration (admin restructure): matchThreshold +
+// resultsPerSubject moved from the retired screening_config singleton into the
+// screening agent's versioned config. An existing install whose stored body
+// predates the move gets one new version carrying the legacy values over;
+// fresh installs seed the fields via defaults and never enter this branch.
+async function migrateLegacyScreeningConfig() {
+  const active = await store.getActiveBody('screening');
+  if (!active || active.body?.matchThreshold !== undefined) return;
+  let legacy;
+  try {
+    legacy = await require('../db/repo').getScreeningConfig();
+  } catch {
+    return; // legacy table unreadable — defaults apply
+  }
+  try {
+    await saveAgentConfig(
+      'screening',
+      {
+        ...active.body,
+        matchThreshold: legacy.matchThreshold,
+        resultsPerSubject: legacy.bingResultsPerSubject,
+      },
+      { actor: 'system', notes: 'migrated matchThreshold/resultsPerSubject from screening_config' }
+    );
+  } catch (err) {
+    // A rejected legacy value must not take boot down — defaults apply.
+    console.warn(`[agents] screening_config migration skipped: ${err.message}`);
+  }
+}
+
 // Boot seeding (idempotent): any agent with no active row gets its defaults
 // as version 1, so the Settings page always has a concrete version to show.
 async function seedAgentConfigs() {
@@ -203,6 +233,7 @@ async function seedAgentConfigs() {
       });
     }
   }
+  await migrateLegacyScreeningConfig();
   invalidate();
 }
 

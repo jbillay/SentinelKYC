@@ -104,7 +104,7 @@ describe('resolveTask — nvidia', () => {
     expect(r).toMatchObject({
       task: 'ocr',
       provider: 'nvidia',
-      model: 'nvidia/nemoretriever-ocr-v2',
+      model: 'nvidia/nemotron-ocr-v2',
       baseUrl: 'https://integrate.api.nvidia.com/v1',
       apiKey: 'secret',
       ocrEndpoint: null,

@@ -23,6 +23,7 @@ function register(app) {
       res.json({
         key,
         label: meta.label,
+        agent: meta.agent,
         description: meta.description,
         defaultBody: meta.defaultBody,
         active,

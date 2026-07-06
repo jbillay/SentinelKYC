@@ -428,7 +428,7 @@ describe('HealthIndicator', () => {
   it('renders the status pill with ok class when health is up', () => {
     const health = useHealthStore()
     health.ok = true
-    health.ollama = { host: 'http://localhost:11434', ok: true }
+    health.llm = { ok: true, ocr: { provider: 'ollama', model: 'glm-ocr', ok: true, host: 'http://localhost:11434' }, reasoning: { provider: 'ollama', model: 'llama3.1:8b', ok: true, host: 'http://localhost:11434' } }
     const w = mountC(HealthIndicator)
     expect(w.find('.pill--ok').exists() || w.html()).toBeTruthy()
   })

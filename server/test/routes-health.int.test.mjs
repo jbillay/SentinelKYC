@@ -23,9 +23,10 @@ describeIntegration('routes: health + meta', () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('ok');
     expect(res.body).toHaveProperty('llm');
-    expect(res.body).toHaveProperty('ollama');
     expect(res.body).toHaveProperty('server');
     expect(res.body.server).toHaveProperty('uptime');
+    // The legacy ollama projection is gone — the llm block is the only LLM surface.
+    expect(res.body).not.toHaveProperty('ollama');
   });
 
   it('GET /api/health includes the agents block once seedReference has run', async () => {
@@ -38,12 +39,11 @@ describeIntegration('routes: health + meta', () => {
     expect(res.body.agents[0]).toHaveProperty('enabled');
   });
 
-  it('GET /api/health.ollama block has the expected legacy shape', async () => {
+  it('GET /api/health.llm block has the per-task shape', async () => {
     const res = await (await api()).get('/api/health');
-    expect(res.body.ollama).toHaveProperty('ok');
-    expect(res.body.ollama).toHaveProperty('models');
-    expect(res.body.ollama.models).toHaveProperty('ocr');
-    expect(res.body.ollama.models).toHaveProperty('reasoning');
+    expect(res.body.llm).toHaveProperty('ok');
+    expect(res.body.llm).toHaveProperty('ocr');
+    expect(res.body.llm).toHaveProperty('reasoning');
   });
 
   it('GET /api/docs/openapi.json requires auth', async () => {

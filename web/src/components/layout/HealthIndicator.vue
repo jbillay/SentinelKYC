@@ -14,6 +14,16 @@ const checkedLabel = computed(() => {
   return `${m}m ago`
 })
 
+const ollamaHost = computed(() => health.tasks.find((t) => t.provider === 'ollama')?.host || null)
+const ollamaDown = computed(() => health.failing.some((t) => t.provider === 'ollama'))
+const nvidiaDown = computed(() => health.failing.some((t) => t.provider === 'nvidia'))
+
+function tagLabel(t) {
+  if (!t.ok) return 'down'
+  if (t.missing.length) return 'missing'
+  return 'ready'
+}
+
 function refresh() {
   health.check()
 }
@@ -28,32 +38,29 @@ function refresh() {
 
     <div v-if="showPopover" class="popover" role="status">
       <div class="pop-row">
-        <span class="t-label">Ollama host</span>
-        <span class="t-mono pop-val">{{ health.ollama?.host || '—' }}</span>
-      </div>
-      <div class="pop-row">
         <span class="t-label">Status</span>
         <span :class="['pop-status', `pop-status--${health.status}`]">
           <span :class="['dot', `dot--${health.status}`]" />
           {{ health.statusLabel }}
         </span>
       </div>
-      <div v-if="health.status === 'ok' || health.status === 'degraded'" class="pop-row">
-        <span class="t-label">Models</span>
+      <div v-if="health.tasks.length" class="pop-row">
+        <span class="t-label">Providers</span>
         <div class="pop-models">
-          <div class="pop-model">
-            <span class="t-mono">{{ health.ollama?.models?.ocr }}</span>
-            <span :class="['model-tag', health.ollama?.missing?.includes(health.ollama?.models?.ocr) ? 'model-tag--missing' : 'model-tag--ok']">
-              {{ health.ollama?.missing?.includes(health.ollama?.models?.ocr) ? 'missing' : 'ready' }}
-            </span>
-          </div>
-          <div class="pop-model">
-            <span class="t-mono">{{ health.ollama?.models?.reasoning }}</span>
-            <span :class="['model-tag', health.ollama?.missing?.includes(health.ollama?.models?.reasoning) ? 'model-tag--missing' : 'model-tag--ok']">
-              {{ health.ollama?.missing?.includes(health.ollama?.models?.reasoning) ? 'missing' : 'ready' }}
+          <div v-for="t in health.tasks" :key="t.task" class="pop-model">
+            <div class="pop-model-main">
+              <span class="pop-task">{{ t.taskLabel }}</span>
+              <span class="t-mono">{{ t.providerLabel }} · {{ t.model || '—' }}</span>
+            </div>
+            <span :class="['model-tag', t.ok && !t.missing.length ? 'model-tag--ok' : 'model-tag--missing']">
+              {{ tagLabel(t) }}
             </span>
           </div>
         </div>
+      </div>
+      <div v-if="ollamaHost" class="pop-row">
+        <span class="t-label">Ollama host</span>
+        <span class="t-mono pop-val">{{ ollamaHost }}</span>
       </div>
       <div v-if="health.lastError" class="pop-row">
         <span class="t-label">Reason</span>
@@ -65,7 +72,11 @@ function refresh() {
       </div>
 
       <div v-if="health.status === 'down'" class="pop-hint">
-        The agent will not run. Start Ollama with <code class="t-mono">ollama serve</code> and click the pill to recheck.
+        The agent will not run.
+        <template v-if="ollamaDown"> Start Ollama with <code class="t-mono">ollama serve</code>.</template>
+        <template v-if="nvidiaDown"> Check <code class="t-mono">NVIDIA_API_KEY</code> and <code class="t-mono">NVIDIA_OCR_ENDPOINT</code> in <code class="t-mono">server/.env</code>.</template>
+        <template v-if="!ollamaDown && !nvidiaDown"> Check that the API server is running.</template>
+        Click the pill to recheck.
       </div>
       <div v-else-if="health.status === 'degraded'" class="pop-hint">
         Pull missing models with <code class="t-mono">ollama pull &lt;model&gt;</code>.
@@ -179,9 +190,24 @@ function refresh() {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--sp-2);
   padding: var(--sp-1) var(--sp-2);
   background: var(--color-page);
   border-radius: var(--radius-sm);
+}
+.pop-model-main {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.pop-task {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
 }
 .model-tag {
   font-size: 10px;

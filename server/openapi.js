@@ -111,19 +111,21 @@ function buildSpec() {
       },
       '/api/dossiers/{companyNumber}/refresh': { post: p('Full re-run (fresh CH + OCR + screening) → { threadId }', { tags: ['dossiers'], parameters: [cnParam], responses: okJson }) },
       '/api/dossiers/{companyNumber}/rescreen': { post: p('Screening-only re-run seeded from the latest run → { threadId }', { tags: ['dossiers'], parameters: [cnParam], responses: okJson }) },
-      '/api/dossiers/{companyNumber}/runs/{runId}': { get: p('Frozen run detail (also …/export.json)', { tags: ['dossiers'], parameters: [cnParam, runIdParam], responses: okJson }) },
+      '/api/dossiers/{companyNumber}/runs/{runId}': { get: p('Frozen run detail', { tags: ['dossiers'], parameters: [cnParam, runIdParam], responses: okJson }) },
+      '/api/dossiers/{companyNumber}/runs/{runId}/export.json': { get: p('Full run export as a downloadable JSON document', { tags: ['dossiers'], parameters: [cnParam, runIdParam], responses: okJson }) },
       '/api/dossiers/{companyNumber}/runs/{runId}/resume': { post: p('Re-run a failed run from its checkpoint', { tags: ['dossiers'], parameters: [cnParam, runIdParam], responses: okJson }) },
       '/api/audit': { get: p('Human-action decision-fragment feed (?kind=human_action&limit=200)', { tags: ['dossiers'], responses: okJson }) },
 
       // --- screening ---------------------------------------------------------
       '/api/dossiers/{companyNumber}/runs/{runId}/screening': { get: p('Full screening hits + evaluations for a run', { tags: ['screening'], parameters: [cnParam, runIdParam], responses: okJson }) },
-      '/api/dossiers/{companyNumber}/runs/{runId}/hits/{hitId}': { patch: p('Set/clear a human override on a hit (reviewer)', { tags: ['screening'], parameters: [cnParam, runIdParam, { name: 'hitId', in: 'path', required: true, schema: { type: 'string' } }], requestBody: jsonBody({ type: 'object', properties: { humanOverride: { type: 'string', enum: ['confirmed', 'dismissed'], nullable: true }, overrideReason: { type: 'string' } } }), responses: okJson }) },
+      '/api/dossiers/{companyNumber}/runs/{runId}/hits/{hitId}': { patch: p('Set/clear a human override on a hit (reviewer); null decision clears', { tags: ['screening'], parameters: [cnParam, runIdParam, { name: 'hitId', in: 'path', required: true, schema: { type: 'string' } }], requestBody: jsonBody({ type: 'object', properties: { decision: { type: 'string', enum: ['confirmed', 'dismissed', 'needs_review'], nullable: true }, reason: { type: 'string', nullable: true } } }), responses: okJson }) },
       '/api/dossiers/{companyNumber}/runs/{runId}/carry-overrides-forward': { post: p('Copy run overrides to dossier-level (reviewer)', { tags: ['screening'], parameters: [cnParam, runIdParam], responses: okJson }) },
       '/api/screening/lists': { get: p('Loaded sanctions list versions', { tags: ['screening'], responses: okJson }) },
 
       // --- risk ---------------------------------------------------------------
       '/api/risk/matrix': { get: p('Active risk matrix', { tags: ['risk'], responses: okJson }) },
       '/api/risk/matrix/versions': { get: p('Matrix version history', { tags: ['risk'], responses: okJson }), post: p('Create a matrix version (admin; does not activate)', { tags: ['risk'], requestBody: jsonBody({ type: 'object' }), responses: okJson }) },
+      '/api/risk/matrix/versions/{id}': { get: p('One matrix version incl. its body', { tags: ['risk'], parameters: [idParam], responses: okJson }) },
       '/api/risk/matrix/active': { post: p('Activate a matrix version (admin)', { tags: ['risk'], requestBody: jsonBody({ type: 'object', required: ['versionId'], properties: { versionId: { type: 'string' } } }), responses: okJson }) },
       '/api/dossiers/{companyNumber}/runs/{runId}/risk': { get: p('Frozen risk assessment for a run', { tags: ['risk'], parameters: [cnParam, runIdParam], responses: okJson }) },
       '/api/dossiers/{companyNumber}/recalculate-risk': { post: p('Matrix-edit-only risk rebase of the latest run (no new run)', { tags: ['risk'], parameters: [cnParam], responses: okJson }) },
@@ -135,14 +137,15 @@ function buildSpec() {
 
       // --- parties --------------------------------------------------------------
       '/api/parties': { get: p('Party master list (?q=&needs_review=&dossier_id=, paginated)', { tags: ['parties'], responses: okJson }) },
-      '/api/parties/match': { post: p('Name matcher (always logs a party_match_log row)', { tags: ['parties'], requestBody: jsonBody({ type: 'object', required: ['name'], properties: { name: { type: 'string' } } }), responses: okJson }) },
+      '/api/parties/match': { post: p('Name matcher (always logs a party_match_log row)', { tags: ['parties'], requestBody: jsonBody({ type: 'object', required: ['name'], properties: { name: { type: 'string', maxLength: 500 }, dob: { type: 'object', properties: { year: { type: 'integer' }, month: { type: 'integer' } } }, nationality: { type: 'array', items: { type: 'string', description: 'ISO-3166-1 alpha-2' } }, countryOfResidence: { type: 'string', description: 'ISO-3166-1 alpha-2' }, minScore: { type: 'number', minimum: 0, maximum: 1 }, limit: { type: 'integer', minimum: 1, maximum: 100 } } }), responses: okJson }) },
       '/api/parties/watchlist': { get: p('Watched parties', { tags: ['parties'], responses: okJson }) },
       '/api/parties/review-queue': { get: p('Pending dedup review items', { tags: ['parties'], responses: okJson }) },
+      '/api/parties/review-queue/{itemId}/resolve': { post: p('Resolve a review-queue item (reviewer): merge the pair or reject', { tags: ['parties'], parameters: [{ name: 'itemId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }], requestBody: jsonBody({ type: 'object', required: ['action'], properties: { action: { type: 'string', enum: ['merge', 'reject'] }, winnerPartyId: { type: 'string', format: 'uuid', description: 'merge only (optional) — overrides the default merge direction' }, reason: { type: 'string', minLength: 3, maxLength: 500 } } }), responses: { ...okJson, 409: { description: 'invalid_state (item already resolved)' } } }) },
       '/api/parties/{id}': { get: p('Party detail', { tags: ['parties'], parameters: [idParam], responses: okJson }) },
       '/api/parties/{id}/screening': { get: p('Cross-dossier screening summary for a party', { tags: ['parties'], parameters: [idParam], responses: okJson }) },
       '/api/parties/{id}/graph': { get: p('Cytoscape graph centred on a party (?depth=&limit=)', { tags: ['parties'], parameters: [idParam], responses: okJson }) },
-      '/api/parties/{id}/overrides': { patch: p('Party-level screening override (reviewer)', { tags: ['parties'], parameters: [idParam], requestBody: jsonBody({ type: 'object' }), responses: okJson }) },
-      '/api/parties/{id}/merge': { post: p('Soft-merge another party into this one (reviewer; :id wins)', { tags: ['parties'], parameters: [idParam], requestBody: jsonBody({ type: 'object', required: ['loserPartyId'], properties: { loserPartyId: { type: 'string' } } }), responses: okJson }) },
+      '/api/parties/{id}/overrides': { patch: p('Party-level (cross-dossier) screening override (reviewer); null decision clears', { tags: ['parties'], parameters: [idParam], requestBody: jsonBody({ type: 'object', required: ['listSource'], properties: { listSource: { type: 'string' }, listEntryId: { type: 'string', nullable: true }, evidenceUrl: { type: 'string', nullable: true }, decision: { type: 'string', enum: ['confirmed', 'dismissed'], nullable: true }, reason: { type: 'string', nullable: true } } }), responses: okJson }) },
+      '/api/parties/{id}/merge': { post: p('Soft-merge another party into this one (reviewer; :id wins)', { tags: ['parties'], parameters: [idParam], requestBody: jsonBody({ type: 'object', required: ['mergeFromPartyId'], properties: { mergeFromPartyId: { type: 'string', format: 'uuid', description: 'the losing party' }, reason: { type: 'string', minLength: 3, maxLength: 500 } } }), responses: { ...okJson, 409: { description: 'invalid_state' } } }) },
       '/api/parties/{id}/watchlist': {
         post: p('Add to watchlist (reviewer)', { tags: ['parties'], parameters: [idParam], responses: okJson }),
         delete: p('Remove from watchlist (reviewer)', { tags: ['parties'], parameters: [idParam], responses: okJson }),
@@ -158,8 +161,9 @@ function buildSpec() {
       '/api/admin/users': { get: p('Members list — application users, safe fields only (admin)', { tags: ['admin'], responses: { ...okJson, 403: { description: 'forbidden (non-admin)' } } }) },
 
       // --- prompts --------------------------------------------------------------
-      '/api/prompts': { get: p('Prompt registry keys + active/latest versions', { tags: ['prompts'], responses: okJson }) },
-      '/api/prompts/{key}': { get: p('Prompt detail + version history', { tags: ['prompts'], parameters: [{ name: 'key', in: 'path', required: true, schema: { type: 'string' } }], responses: okJson }) },
+      '/api/prompts': { get: p('Prompt registry keys + owning agent + active/latest versions', { tags: ['prompts'], responses: okJson }) },
+      '/api/prompts/{key}': { get: p('Prompt detail (incl. owning agent) + version history', { tags: ['prompts'], parameters: [{ name: 'key', in: 'path', required: true, schema: { type: 'string' } }], responses: okJson }) },
+      '/api/prompts/{key}/versions/{id}': { get: p('One prompt version incl. its body (A/B baseline for the eval harness)', { tags: ['prompts'], parameters: [{ name: 'key', in: 'path', required: true, schema: { type: 'string' } }, idParam], responses: okJson }) },
       '/api/prompts/{key}/versions': { post: p('Create a prompt version (admin; does not activate)', { tags: ['prompts'], parameters: [{ name: 'key', in: 'path', required: true, schema: { type: 'string' } }], requestBody: jsonBody({ type: 'object', required: ['body'], properties: { body: { type: 'string' }, notes: { type: 'string' } } }), responses: okJson }) },
       '/api/prompts/{key}/active': { post: p('Activate a prompt version (admin)', { tags: ['prompts'], parameters: [{ name: 'key', in: 'path', required: true, schema: { type: 'string' } }], requestBody: jsonBody({ type: 'object', required: ['versionId'], properties: { versionId: { type: 'string' } } }), responses: okJson }) },
 

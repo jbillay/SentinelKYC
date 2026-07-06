@@ -72,7 +72,8 @@ vi.mock('../agents/config', () => ({
     maxCandidates: 5,
     adverseMediaEnabled: true,
     gdeltTimespan: '12m',
-    bingResultsPerSubject: 20,
+    matchThreshold: 0.85,
+    resultsPerSubject: 20,
   })),
   seedAgentConfigs: vi.fn(async () => {}),
 }));
