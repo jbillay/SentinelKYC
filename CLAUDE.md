@@ -48,7 +48,8 @@ server/
                            { schema, getPrompt(), ocrPolicy }
   routes/                  runs, dossiers, screening, risk, qa, decision, prompts, documents, health, meta, parties, agents, docs
                            (each exports register(app[, deps]); index.js wires them)
-  openapi.js               Hand-maintained OpenAPI 3 spec — update in the same PR as any route change; served at /api/docs (Swagger UI)
+  openapi.js               Hand-maintained OpenAPI 3 spec — update in the same PR as any route change
+                           (ENFORCED: test/openapi-drift.test.mjs diffs spec ↔ routes/*.js on CI); served at /api/docs (Swagger UI)
   services/
     ch.js                  Companies House client (cache, SSRF allowlist, secret redaction); downloadDocumentToFile + getDocumentBinary
     llm/                   index.js (cache+retry, prompt load; exports ocrPage/extractStructured/checkProviders),
@@ -96,8 +97,12 @@ web/
     router/index.js        Routes — see "Routes" below
     layouts/AppShell.vue   Sidebar + topbar shell + Ollama health banner
     pages/                 SignInPage, DossiersPage, SearchPage, RunPage, DossierViewPage, RunDetailPage,
-                           RunDiffPage, GraphPage, WatchlistPage, PartiesPage, PartyDetailPage, AuditLogPage, SettingsPage
-    components/            SearchForm, CandidateDisambiguation, KycCard, ShareholderGraph, PartyGraph, PartyIdentityCard, AgentsPanel,
+                           RunDiffPage, GraphPage, WatchlistPage, PartiesPage, PartyDetailPage, AuditLogPage,
+                           SettingsPage (profile only), AdminPage (tabs: Agents/Data model/Process/Members),
+                           AgentDetailPage (/admin/agents/:agentId — one agent's config + prompts + engine settings)
+    components/            SearchForm, CandidateDisambiguation, KycCard, ShareholderGraph, PartyGraph, PartyIdentityCard,
+                           AgentsPanel (agent list + toggles), AgentConfigForm, PromptsPanel (per-agent prompt editor),
+                           RiskMatrixPanel, ScreeningSourcesPanel,
                            AgentTrail, LiveEvidenceCard, ProcessTab, DataModelTab, ScreeningTab, ScreeningEvidenceCard,
                            ScreeningHitPanel, RiskAssessmentCard, QaNarrative, FinalDecisionPanel,
                            FinalDecisionPanelReadOnly, CountryFlag, NotFound, layout/{SideNav,TopBar,HealthIndicator}
@@ -157,7 +162,7 @@ ollama pull llama3.1:8b
 
 ## Agent configuration & toggles (v0.1 Phases 1+2)
 
-The six pipeline agents (`entity-resolution`, `document-manager`, `ubo-structure`, `screening`, `risk-assessment`, `qa`) are defined in `agents/defs.js` and configured at runtime via Settings → Agents (`/settings#agents`), no restart:
+The six pipeline agents (`entity-resolution`, `document-manager`, `ubo-structure`, `screening`, `risk-assessment`, `qa`) are defined in `agents/defs.js` and configured at runtime via the admin section (master-detail: `/admin` Agents tab lists them with enable/disable switches; `/admin/agents/:agentId` holds each agent's full config, its prompts, and related engine settings), no restart:
 
 - **Versioned config** — `agent_config_versions` / `agent_config_active` (migration 0025, mirrors the prompt registry); every save creates+activates a new version and writes an immutable `config_audit` row. `agents/config.js#loadAgentConfig(id)` is the cached read path; saving invalidates it AND the compiled-graph cache.
 - **Knobs migrated from env/constants**: ER auto-match threshold/lead/candidate count; document-manager OCR page cap (**deactivatable** — `pageCapEnabled:false` lifts the per-doc limit) + page selection; ubo corroboration gate; screening adverse-media toggle + GDELT timespan. Env vars (`OCR_PAGE_SELECTION`, `PARTY_REQUIRE_CORROBORATION`, `GDELT_TIMESPAN`), when explicitly set, still win — legacy escape hatch + smoke compatibility.
@@ -252,7 +257,7 @@ Routes live in `server/routes/*` (each `register(app[, deps])`, wired in `index.
 
 **Health** — `GET /api/health` → cached LLM-provider probe refreshed every 15s + per-agent enablement (`agents: [{id,name,required,enabled}]`); UI surfaces it as a banner.
 
-**Docs** — `GET /api/docs` → Swagger UI (signed-in users; assets from unpkg CDN); `GET /api/docs/openapi.json` → the spec (`server/openapi.js`, hand-maintained — **update it in the same PR as any route change**).
+**Docs** — `GET /api/docs` → Swagger UI (signed-in users; assets from unpkg CDN); `GET /api/docs/openapi.json` → the spec (`server/openapi.js`, hand-maintained — **update it in the same PR as any route change**; `test/openapi-drift.test.mjs` fails CI on any path/method mismatch between the spec and `routes/*.js`, in either direction).
 
 **Agents** — `GET /api/agents` (list: definition + masked config + version), `GET /api/agents/:id` (detail + versions), `POST /api/agents/:id/config` `{ body, notes }` (admin; validate → new version → activate → audit; 400 `{ error:'invalid_config', validationErrors }`), `POST /api/agents/:id/enabled` `{ enabled }` (admin; 400 `{ error:'agent_required' }` for required agents).
 
@@ -294,7 +299,8 @@ Routes live in `server/routes/*` (each `register(app[, deps])`, wired in `index.
 - `/dossier/:cn/graph` (+ `/graph/current`) — full-screen Cytoscape view.
 - `/parties` — party master list; `/party/:partyId` — party detail (identity, links, cross-dossier screening + graph).
 - `/watchlist` — watched parties (real `GET /api/parties/watchlist` data) + party review queue tabs.
-- `/audit`, `/settings` (Settings hosts the **Agents panel** (`#agents` — enable/disable + per-agent config), screening config, the prompt editor, and the risk-matrix editor; deep-link the risk matrix via `/settings#risk-matrix`).
+- `/audit`; `/settings` (profile-only: display name / username / email + password).
+- `/admin` (admin role) — tabs: **Agents** (list + enable/disable + link per agent), Data model, Process, Members. `/admin/agents/:agentId` is the per-agent section: config form (versioned), the prompts that agent owns, plus sanctions sources (screening) and the risk-matrix editor (risk-assessment). Legacy hashes `#screening` / `#risk-matrix` / `#prompts` redirect into the matching agent page.
 
 ## Party Master
 
@@ -332,7 +338,7 @@ LLM prompts are versioned in Postgres so we can iterate without a redeploy. Keys
 - `risk.normalize_country` — free-text country → ISO-3166-1 alpha-2 (or `null`); only on a static-lookup miss, cached in `kv_cache`.
 - `qa.narrative` — regulator-style case memo; paragraph count scales to tier (Low 2 / Medium 4 / High 6); must agree with the routing decision.
 
-`services/prompts.js` is the single read path: `loadPrompt(key)` reads the active version and caches in-process. `setActive` invalidates. `loadPromptVersion(key, versionId)` loads a *specific* (possibly non-active) version's body — the A/B entry point the R3 eval harness uses to score a candidate against the active baseline before `setActive`. The Settings page edits these via `/api/prompts`. Don't hard-code prompts elsewhere — register a key and call `loadPrompt`.
+`services/prompts.js` is the single read path: `loadPrompt(key)` reads the active version and caches in-process. `setActive` invalidates. `loadPromptVersion(key, versionId)` loads a *specific* (possibly non-active) version's body — the A/B entry point the R3 eval harness uses to score a candidate against the active baseline before `setActive`. Every prompt carries an `agent` field (its owning agent, one and only one) and is edited inside that agent's admin section (`/admin/agents/:agentId`) via `/api/prompts`. Cross-cutting prompts (`kyc.synthesis`, `extract.json_strict_retry`) are homed under `document-manager`. Don't hard-code prompts elsewhere — register a key (with its `agent`) and call `loadPrompt`.
 
 ## Screening notes
 
@@ -340,7 +346,7 @@ Detailed design lives in `docs/architecture/SCREENING_PLAN.md` — read it befor
 
 - **Subjects** = company (from `profile`) ∪ officers (from `officers.items`) ∪ PSCs (from `psc.items`) ∪ extracted shareholders. Party-keyed when the resolver ran (`subjectId = party:<uuid>`), legacy `${source}:${normalizedName}` otherwise. Authorized signatories and recursive ownership-chain walking are out of scope.
 - **Sanctions sources** loaded into Postgres (`sanctions_lists`, `sanctions_entries`) by `npm run lists:refresh` (`server/scripts/refresh-sanctions.js`). v1 ships **OFAC SDN enhanced XML** + **UK HMT consolidated CSV**. Adding a source = a file under `services/sanctions/sources/` + a parser. **Run `lists:refresh` once after `db:migrate`** — without it, sanctions screening returns zero hits.
-- **Matching**: `services/sanctions/matcher.js` uses token-set ratio (`fastest-levenshtein`) + Double Metaphone fallback against name + every alias. Single global threshold from `screening_config.match_threshold` (default 0.85). PEP screening is deferred.
+- **Matching**: `services/sanctions/matcher.js` uses token-set ratio (`fastest-levenshtein`) + Double Metaphone fallback against name + every alias. Single global threshold from the screening agent's config (`matchThreshold`, default 0.85 — migrated out of the legacy `screening_config` singleton; `/api/screening/config` is retired, the table remains only as the one-shot migration source). PEP screening is deferred.
 - **Adverse media**: live news via the **GDELT 2.0 DOC API** (`mode=ArtList&format=json`) — free, **no API key**; optional `GDELT_DOC_ENDPOINT` / `GDELT_TIMESPAN` (default `12m`) overrides. Client in `services/adverseMedia/gdelt.js`. **Headlines only — no snippet.** Cached in `kv_cache` with **two layers (G1)**: party-keyed `partyId + ISO-week` (cross-dossier — a shared individual costs one GDELT fetch per week) then name-keyed `name + ISO-week` (legacy subjects + cross-party same-name reuse); a real fetch writes both, lookup order party → name → GDELT (7-day implicit TTL). Strictly serial semaphore (1 concurrent, **6s** min spacing) + 429/network retries; persistent 429 → soft-skip (`GDELT_RATE_LIMITED`). Screened on **individuals only** in v1. This is the dominant wall-clock cost on large boards.
 - **Persistence**: hits in `screening_hits` (one row per `subject × list × match`, carries optional `party_id`); evaluations in `screening_evaluations` (LLM decision + reasoning + optional override). Frozen report on `runs.final_screening_report`.
 - **Overrides**: per-run via the hits PATCH; per-dossier carry-forward via `…/carry-overrides-forward`; per-party (cross-dossier) via `PATCH /api/parties/:id/overrides`. Precedence: party-level wins over dossier-level. For sanctions the LLM still runs (audit trail) but the override decides; for adverse media the override short-circuits the LLM.
@@ -383,7 +389,7 @@ old spoofable `x-user-id` model. Design rationale in `docs/archive/P0_IMPLEMENTA
 
 - **Users**: `users` table (migration 0020) — `username`, `password_hash` (bcryptjs, cost 12), `role`, `active`. Seeded by `npm run users:seed` from `SEED_{ANALYST,REVIEWER,ADMIN}_PASSWORD` env (never hard-coded). **Run once after `db:migrate`.**
 - **Sessions**: `express-session` + `connect-pg-simple` on the existing pg pool (`session` table auto-created). httpOnly cookie `ccpoc.sid`, `SameSite=Lax`, `Secure` via `COOKIE_SECURE`, rolling TTL. Durable + revocable + shared across processes (ready for the R2 worker). **The cookie is auto-sent by `EventSource`, so SSE needs no special auth handling.**
-- **Roles** (hierarchy `admin > reviewer > analyst`): `analyst` = run + read + recommend (incl. qa/recompute + recalculate-risk — deterministic, auditable rebases); `reviewer` = + final decisions, screening hit overrides + carry-forward, party overrides / merge / review-queue resolution / watchlist edits; `admin` = + edit prompts / risk matrix / screening config. `requireRole(min)` is hierarchy-aware (admin satisfies all). Guards are registered inside each route module next to the handler they protect — not centrally in `index.js`.
+- **Roles** (hierarchy `admin > reviewer > analyst`): `analyst` = run + read + recommend (incl. qa/recompute + recalculate-risk — deterministic, auditable rebases); `reviewer` = + final decisions, screening hit overrides + carry-forward, party overrides / merge / review-queue resolution / watchlist edits; `admin` = + edit prompts / risk matrix / agent config (incl. the screening engine knobs). `requireRole(min)` is hierarchy-aware (admin satisfies all). Guards are registered inside each route module next to the handler they protect — not centrally in `index.js`.
 - **CSRF**: cookie auth → double-submit token on mutating methods. Client `GET /api/auth/csrf`, echoes it in `x-csrf-token`. Server `csrfProtection` middleware enforces; the web `lib/api.js` fetch wrapper attaches it automatically (+ refresh-and-retry on 403).
 - **Server**: `services/auth/{index,session,passwords}.js`, `routes/auth.js` (`POST /api/auth/login` rate-limited, `/logout`, `GET /api/auth/me`, `GET /api/auth/csrf`, **`PATCH /api/auth/profile`** displayName/username/email, **`POST /api/auth/password`** with current-password check). `index.js` mounts session → `authMiddleware` (→ `req.auth = {userId, username, displayName, email, role}`) → `csrfProtection` → auth gate (all `/api/*` except `/api/auth/{login,logout,csrf,me}` + `/api/health`) → role guards → routes. `readUserId(req)` (the single identity chokepoint) now returns `req.auth.userId`. **Self-service profile/password edits use the session user id, never the body — role/active are never self-editable.** `users.email` added in migration 0021.
 - **Web**: `stores/auth.js` (login/logout/me + `hasRole` + `updateProfile`/`changePassword`), `lib/api.js` (window.fetch wrapper: credentials + CSRF + 401→signin), real `SignInPage.vue`, router `beforeEach` guard, user chip (links to `/settings#account`) + sign-out in `TopBar.vue`. **"My account" tab in `SettingsPage.vue`** (edit display name / username / email + change password); the top-right chip deep-links there.

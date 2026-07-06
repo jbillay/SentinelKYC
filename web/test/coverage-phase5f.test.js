@@ -1,11 +1,13 @@
 // Phase 5f — branch + function push toward web 80%.
 //
-// Covers:
-//   - AdminPage.vue (was 44% stmts / 16% br / 21% fn — biggest single file):
-//       tab navigation + hash deep-link, screening config load/save/error,
-//       risk-matrix editor (clientValidateMatrix branches, save flows, set-active),
-//       prompts editor (pick key/version, save, set-active toggle, show-default),
+// Covers (updated for the admin master-detail restructure — the screening /
+// risk-matrix / prompts tabs became per-agent components):
+//   - AdminPage.vue: tab navigation + hash deep-link + legacy-hash redirects,
 //       members tab (initials, login fmt, active count, error).
+//   - ScreeningSourcesPanel.vue: lists load/empty/error/reload.
+//   - RiskMatrixPanel.vue: clientValidateMatrix branches, save flows, set-active.
+//   - PromptsPanel.vue: per-agent filter, pick key/version, save, set-active,
+//       show-default, self-hide when the agent owns no prompts.
 //   - PartiesPage.vue (was 47/44/20): list render, filters, pagination, empty state.
 //   - PartyDetailPage.vue (was 47/32/17): identity render, tab switching,
 //       watchlist toggle, screening overrides, merge dialog, loading/error.
@@ -171,6 +173,9 @@ vi.mock('@/composables/useParty.js', async () => {
 
 // ── Component / page imports (after mocks) ───────────────────────────────────
 import AdminPage from '@/pages/AdminPage.vue'
+import ScreeningSourcesPanel from '@/components/ScreeningSourcesPanel.vue'
+import RiskMatrixPanel from '@/components/RiskMatrixPanel.vue'
+import PromptsPanel from '@/components/PromptsPanel.vue'
 import PartiesPage from '@/pages/PartiesPage.vue'
 import PartyDetailPage from '@/pages/PartyDetailPage.vue'
 import HealthIndicator from '@/components/layout/HealthIndicator.vue'
@@ -185,8 +190,9 @@ const MATRIX_BODY = {
   knockouts: {},
 }
 const PROMPT_LIST = [
-  { key: 'kyc.synthesis', label: 'KYC synthesis', activeVersion: 2, latestVersion: 3 },
-  { key: 'ocr.page', label: 'OCR page', activeVersion: 1, latestVersion: 1 },
+  { key: 'kyc.synthesis', label: 'KYC synthesis', agent: 'document-manager', activeVersion: 2, latestVersion: 3 },
+  { key: 'ocr.page', label: 'OCR page', agent: 'document-manager', activeVersion: 1, latestVersion: 1 },
+  { key: 'qa.narrative', label: 'QA narrative', agent: 'qa', activeVersion: 1, latestVersion: 1 },
 ]
 function makePromptDetail(key) {
   return {
@@ -324,96 +330,90 @@ describe('AdminPage — tab navigation', () => {
     await processTab.trigger('click')
     expect(w.find('.stub-process').exists()).toBe(true)
   })
+
+  it('redirects legacy #risk-matrix hash to the risk-assessment agent page', async () => {
+    routeRef = { params: {}, query: {}, hash: '#risk-matrix' }
+    mountAdmin()
+    await flush()
+    expect(mockReplace).toHaveBeenCalledWith({ name: 'admin-agent', params: { agentId: 'risk-assessment' } })
+  })
+
+  it('redirects legacy #screening and #prompts hashes to agent pages', async () => {
+    routeRef = { params: {}, query: {}, hash: '#screening' }
+    mountAdmin()
+    await flush()
+    expect(mockReplace).toHaveBeenCalledWith({ name: 'admin-agent', params: { agentId: 'screening' } })
+    mockReplace.mockClear()
+    routeRef = { params: {}, query: {}, hash: '#prompts' }
+    mountAdmin()
+    await flush()
+    expect(mockReplace).toHaveBeenCalledWith({ name: 'admin-agent', params: { agentId: 'document-manager' } })
+  })
 })
 
-describe('AdminPage — screening config tab', () => {
-  async function openScreening(w) {
-    const tab = w.findAll('.tab').find((t) => t.text() === 'Screening')
-    await tab.trigger('click')
-    await flush()
+describe('ScreeningSourcesPanel', () => {
+  function mountSources() {
+    return mount(ScreeningSourcesPanel, { global: { plugins: [createPinia()] } })
   }
 
-  it('loads lists + config and renders sources', async () => {
+  it('loads lists and renders sources', async () => {
     globalThis.fetch = vi.fn()
       .mockResolvedValueOnce(ok([{ source: 'ofac_sdn', version: '2026-06', recordCount: 12000, fetchedAt: '2026-06-10T00:00:00Z' }]))
-      .mockResolvedValueOnce(ok({ matchThreshold: 0.9, bingResultsPerSubject: 25 }))
-    const w = mountAdmin()
-    await openScreening(w)
+    const w = mountSources()
+    await flush()
     expect(w.html()).toContain('OFAC SDN')
     expect(w.html()).toContain('version 2026-06')
   })
 
   it('shows the no-snapshots message when lists are empty', async () => {
-    globalThis.fetch = vi.fn()
-      .mockResolvedValueOnce(ok([]))
-      .mockResolvedValueOnce(ok({ matchThreshold: 0.85, bingResultsPerSubject: 20 }))
-    const w = mountAdmin()
-    await openScreening(w)
+    globalThis.fetch = vi.fn().mockResolvedValueOnce(ok([]))
+    const w = mountSources()
+    await flush()
     expect(w.html()).toContain('No sanctions snapshots loaded yet')
   })
 
-  it('shows an error banner when config load throws', async () => {
+  it('shows an error banner when the load throws', async () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('lists down'))
-    const w = mountAdmin()
-    await openScreening(w)
+    const w = mountSources()
+    await flush()
     expect(w.html()).toContain('lists down')
   })
 
-  it('saves screening config successfully', async () => {
-    globalThis.fetch = vi.fn()
-      .mockResolvedValueOnce(ok([]))
-      .mockResolvedValueOnce(ok({ matchThreshold: 0.85, bingResultsPerSubject: 20 }))
-      .mockResolvedValueOnce(ok({ matchThreshold: 0.85, bingResultsPerSubject: 20 }))
-    const w = mountAdmin()
-    await openScreening(w)
-    const saveBtn = w.findAll('button').find((b) => b.text().includes('Save changes'))
-    await saveBtn.trigger('click')
+  it('shows an error banner on a non-OK response', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(fail(500))
+    const w = mountSources()
     await flush()
-    expect(w.html()).toContain('Saved.')
+    expect(w.html()).toContain('lists load failed: 500')
   })
 
-  it('shows an error when saving config fails', async () => {
-    globalThis.fetch = vi.fn()
-      .mockResolvedValueOnce(ok([]))
-      .mockResolvedValueOnce(ok({ matchThreshold: 0.85, bingResultsPerSubject: 20 }))
-      .mockResolvedValueOnce(fail(400, { error: 'threshold out of range' }))
-    const w = mountAdmin()
-    await openScreening(w)
-    const saveBtn = w.findAll('button').find((b) => b.text().includes('Save changes'))
-    await saveBtn.trigger('click')
-    await flush()
-    expect(w.html()).toContain('threshold out of range')
-  })
-
-  it('Reload button re-fetches the screening settings', async () => {
+  it('Reload button re-fetches the lists', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(ok([]))
-    const w = mountAdmin()
-    await openScreening(w)
+    const w = mountSources()
+    await flush()
+    const before = globalThis.fetch.mock.calls.length
     const reloadBtn = w.findAll('button').find((b) => b.text().includes('Reload'))
     await reloadBtn.trigger('click')
     await flush()
-    expect(globalThis.fetch).toHaveBeenCalled()
+    expect(globalThis.fetch.mock.calls.length).toBeGreaterThan(before)
   })
 })
 
-describe('AdminPage — risk matrix tab', () => {
-  async function openRisk(w) {
-    const tab = w.findAll('.tab').find((t) => t.text() === 'Risk matrix')
-    await tab.trigger('click')
+describe('RiskMatrixPanel', () => {
+  async function openRiskPanel() {
+    const w = mount(RiskMatrixPanel, { global: { plugins: [createPinia()] } })
     await flush()
+    return w
   }
 
-  it('loads the active matrix + versions on tab open', async () => {
-    const w = mountAdmin()
-    await openRisk(w)
+  it('loads the active matrix + versions on mount', async () => {
+    const w = await openRiskPanel()
     expect(riskFns.load).toHaveBeenCalled()
     expect(w.html()).toContain('Active version')
     expect(w.html()).toContain('v1')
   })
 
   it('selecting a version fetches its body', async () => {
-    const w = mountAdmin()
-    await openRisk(w)
+    const w = await openRiskPanel()
     const versionItem = w.findAll('.prompt-item').find((li) => li.text().includes('v1'))
     if (versionItem) {
       await versionItem.trigger('click')
@@ -423,8 +423,7 @@ describe('AdminPage — risk matrix tab', () => {
   })
 
   it('starts a new version editor pre-filled from the active body', async () => {
-    const w = mountAdmin()
-    await openRisk(w)
+    const w = await openRiskPanel()
     const newBtn = w.findAll('button').find((b) => b.text().includes('New version'))
     await newBtn.trigger('click')
     await nextTick()
@@ -433,8 +432,7 @@ describe('AdminPage — risk matrix tab', () => {
   })
 
   it('cancel returns from the editor to the view', async () => {
-    const w = mountAdmin()
-    await openRisk(w)
+    const w = await openRiskPanel()
     await w.findAll('button').find((b) => b.text().includes('New version')).trigger('click')
     await nextTick()
     const cancelBtn = w.findAll('button').find((b) => b.text() === 'Cancel')
@@ -444,8 +442,7 @@ describe('AdminPage — risk matrix tab', () => {
   })
 
   it('save rejects invalid JSON with a client error', async () => {
-    const w = mountAdmin()
-    await openRisk(w)
+    const w = await openRiskPanel()
     await w.findAll('button').find((b) => b.text().includes('New version')).trigger('click')
     await nextTick()
     await w.find('textarea.prompt-body').setValue('{ not valid json')
@@ -457,8 +454,7 @@ describe('AdminPage — risk matrix tab', () => {
   })
 
   it('save rejects a body whose weights do not sum to 1', async () => {
-    const w = mountAdmin()
-    await openRisk(w)
+    const w = await openRiskPanel()
     await w.findAll('button').find((b) => b.text().includes('New version')).trigger('click')
     await nextTick()
     const badBody = { ...MATRIX_BODY, weights: { geographic: 0.5, entityType: 0.1, structuralComplexity: 0.1, industry: 0.1 } }
@@ -470,8 +466,7 @@ describe('AdminPage — risk matrix tab', () => {
   })
 
   it('save rejects a body missing weights/thresholds/factors/knockouts', async () => {
-    const w = mountAdmin()
-    await openRisk(w)
+    const w = await openRiskPanel()
     await w.findAll('button').find((b) => b.text().includes('New version')).trigger('click')
     await nextTick()
     await w.find('textarea.prompt-body').setValue('{}')
@@ -482,8 +477,7 @@ describe('AdminPage — risk matrix tab', () => {
   })
 
   it('save rejects a non-object body', async () => {
-    const w = mountAdmin()
-    await openRisk(w)
+    const w = await openRiskPanel()
     await w.findAll('button').find((b) => b.text().includes('New version')).trigger('click')
     await nextTick()
     await w.find('textarea.prompt-body').setValue('[1,2,3]')
@@ -493,8 +487,7 @@ describe('AdminPage — risk matrix tab', () => {
   })
 
   it('valid body creates a new version', async () => {
-    const w = mountAdmin()
-    await openRisk(w)
+    const w = await openRiskPanel()
     await w.findAll('button').find((b) => b.text().includes('New version')).trigger('click')
     await nextTick()
     await w.find('textarea.prompt-body').setValue(JSON.stringify(MATRIX_BODY))
@@ -505,8 +498,7 @@ describe('AdminPage — risk matrix tab', () => {
   })
 
   it('set-active on a version calls the composable', async () => {
-    const w = mountAdmin()
-    await openRisk(w)
+    const w = await openRiskPanel()
     // versionDetail active version is rv1; render a 2nd version so "Set active" shows
     riskState.versions.value = [
       { id: 'rv1', version: 1, notes: null, createdAt: '2026-06-01T00:00:00Z' },
@@ -522,8 +514,7 @@ describe('AdminPage — risk matrix tab', () => {
   })
 
   it('Reload button re-loads the matrix', async () => {
-    const w = mountAdmin()
-    await openRisk(w)
+    const w = await openRiskPanel()
     riskFns.load.mockClear()
     const reloadBtn = w.findAll('button').find((b) => b.text().includes('Reload'))
     await reloadBtn.trigger('click')
@@ -532,24 +523,37 @@ describe('AdminPage — risk matrix tab', () => {
   })
 })
 
-describe('AdminPage — prompts tab', () => {
-  async function openPrompts(w) {
-    const tab = w.findAll('.tab').find((t) => t.text() === 'Prompts')
-    await tab.trigger('click')
+describe('PromptsPanel', () => {
+  async function openPrompts(agent = 'document-manager') {
+    const w = mount(PromptsPanel, {
+      props: { agent },
+      global: { plugins: [createPinia()] },
+    })
     await flush()
+    return w
   }
 
-  it('fetches prompts and auto-selects the first key', async () => {
-    const w = mountAdmin()
-    await openPrompts(w)
+  it('fetches prompts and auto-selects the first key owned by the agent', async () => {
+    const w = await openPrompts()
     expect(promptFns.fetchList).toHaveBeenCalled()
     expect(promptFns.selectKey).toHaveBeenCalledWith('kyc.synthesis')
     expect(w.html()).toContain('KYC synthesis')
   })
 
+  it('only lists prompts belonging to the agent', async () => {
+    const w = await openPrompts()
+    expect(w.html()).toContain('kyc.synthesis')
+    expect(w.html()).toContain('ocr.page')
+    expect(w.html()).not.toContain('qa.narrative')
+  })
+
+  it('hides itself entirely when the agent owns no prompts', async () => {
+    const w = await openPrompts('entity-resolution')
+    expect(w.find('.sheet').exists()).toBe(false)
+  })
+
   it('picking a key in the rail selects it', async () => {
-    const w = mountAdmin()
-    await openPrompts(w)
+    const w = await openPrompts()
     const items = w.findAll('.prompt-item')
     if (items.length > 1) {
       await items[1].trigger('click')
@@ -559,8 +563,7 @@ describe('AdminPage — prompts tab', () => {
   })
 
   it('changing the version select calls selectVersion', async () => {
-    const w = mountAdmin()
-    await openPrompts(w)
+    const w = await openPrompts()
     const select = w.find('select')
     if (select.exists()) {
       await select.setValue('v1')
@@ -569,8 +572,7 @@ describe('AdminPage — prompts tab', () => {
   })
 
   it('toggles the default body view', async () => {
-    const w = mountAdmin()
-    await openPrompts(w)
+    const w = await openPrompts()
     const showBtn = w.findAll('button').find((b) => b.text().includes('Show default'))
     await showBtn.trigger('click')
     await nextTick()
@@ -582,16 +584,14 @@ describe('AdminPage — prompts tab', () => {
   })
 
   it('Save as new version calls the composable', async () => {
-    const w = mountAdmin()
-    await openPrompts(w)
+    const w = await openPrompts()
     const saveBtn = w.findAll('button').find((b) => b.text().includes('Save as new version'))
     await saveBtn.trigger('click')
     expect(promptFns.saveAsNewVersion).toHaveBeenCalled()
   })
 
   it('Set as active is disabled when the active version is selected, enabled otherwise', async () => {
-    const w = mountAdmin()
-    await openPrompts(w)
+    const w = await openPrompts()
     // selectedVersionId is 'v2' which equals active.id → disabled
     const setActiveBtn = w.findAll('button').find((b) => b.text().includes('Set as active'))
     expect(setActiveBtn.attributes('disabled')).toBeDefined()
@@ -604,8 +604,7 @@ describe('AdminPage — prompts tab', () => {
   })
 
   it('shows the prompt error banner', async () => {
-    const w = mountAdmin()
-    await openPrompts(w)
+    const w = await openPrompts()
     promptState.error.value = 'prompt load failed'
     await nextTick()
     expect(w.html()).toContain('prompt load failed')
@@ -943,11 +942,15 @@ describe('HealthIndicator', () => {
     expect(w.html()).toContain('pill--unknown')
   })
 
-  it('renders the ok state with models ready in the popover', async () => {
+  it('renders the ok state with per-task provider rows in the popover', async () => {
     const w = mountHealth()
     const store = useHealthStore()
     store.ok = true
-    store.ollama = { host: 'http://localhost:11434', models: { ocr: 'glm-ocr', reasoning: 'llama3.1:8b' }, missing: [] }
+    store.llm = {
+      ok: true,
+      ocr: { provider: 'ollama', model: 'glm-ocr', ok: true, host: 'http://localhost:11434', missing: [] },
+      reasoning: { provider: 'ollama', model: 'llama3.1:8b', ok: true, host: 'http://localhost:11434', missing: [] },
+    }
     store.checkedAt = Date.now()
     await nextTick()
     expect(store.status).toBe('ok')
@@ -956,13 +959,36 @@ describe('HealthIndicator', () => {
     await nextTick()
     expect(w.html()).toContain('glm-ocr')
     expect(w.html()).toContain('ready')
+    expect(w.html()).toContain('http://localhost:11434')
+  })
+
+  it('renders a mixed config naming both providers per task', async () => {
+    const w = mountHealth()
+    const store = useHealthStore()
+    store.ok = true
+    store.llm = {
+      ok: true,
+      ocr: { provider: 'nvidia', model: 'nvidia/nemotron-ocr-v2', ok: true },
+      reasoning: { provider: 'ollama', model: 'llama3.1:8b', ok: true, host: 'h', missing: [] },
+    }
+    store.checkedAt = Date.now()
+    await nextTick()
+    expect(w.html()).toContain('NVIDIA + Ollama online')
+    await w.find('.health-wrap').trigger('mouseenter')
+    await nextTick()
+    expect(w.html()).toContain('NVIDIA · nvidia/nemotron-ocr-v2')
+    expect(w.html()).toContain('Ollama · llama3.1:8b')
   })
 
   it('renders the degraded state with a missing-model hint', async () => {
     const w = mountHealth()
     const store = useHealthStore()
     store.ok = true
-    store.ollama = { host: 'h', models: { ocr: 'glm-ocr', reasoning: 'llama3.1:8b' }, missing: ['glm-ocr'] }
+    store.llm = {
+      ok: true,
+      ocr: { provider: 'ollama', model: 'glm-ocr', ok: true, host: 'h', missing: ['glm-ocr'] },
+      reasoning: { provider: 'ollama', model: 'llama3.1:8b', ok: true, host: 'h', missing: [] },
+    }
     store.checkedAt = Date.now()
     await nextTick()
     expect(store.status).toBe('degraded')
@@ -973,7 +999,7 @@ describe('HealthIndicator', () => {
     expect(w.html()).toContain('ollama pull')
   })
 
-  it('renders the down state with the offline hint + reason', async () => {
+  it('renders the down state with an API-offline hint + reason when the server is unreachable', async () => {
     const w = mountHealth()
     const store = useHealthStore()
     store.ok = false
@@ -981,11 +1007,28 @@ describe('HealthIndicator', () => {
     store.checkedAt = Date.now()
     await nextTick()
     expect(store.status).toBe('down')
-    expect(w.html()).toContain('Ollama offline')
+    expect(w.html()).toContain('API offline')
     await w.find('.health-wrap').trigger('mouseenter')
     await nextTick()
-    expect(w.html()).toContain('ollama serve')
+    expect(w.html()).toContain('API server')
     expect(w.html()).toContain('connection refused')
+  })
+
+  it('renders provider-specific hints when a task provider is down', async () => {
+    const w = mountHealth()
+    const store = useHealthStore()
+    store.ok = false
+    store.llm = {
+      ok: false,
+      ocr: { provider: 'nvidia', model: 'nvidia/nemotron-ocr-v2', ok: false, detail: 'HTTP 403' },
+      reasoning: { provider: 'ollama', model: 'llama3.1:8b', ok: false, host: 'h', detail: 'unreachable', missing: [] },
+    }
+    store.checkedAt = Date.now()
+    await nextTick()
+    await w.find('.health-wrap').trigger('mouseenter')
+    await nextTick()
+    expect(w.html()).toContain('NVIDIA_API_KEY')
+    expect(w.html()).toContain('ollama serve')
   })
 
   it('clicking the pill triggers a health check', async () => {
@@ -1000,7 +1043,7 @@ describe('HealthIndicator', () => {
     const w = mountHealth()
     const store = useHealthStore()
     store.ok = true
-    store.ollama = { host: 'h', models: { ocr: 'a', reasoning: 'b' }, missing: [] }
+    store.llm = { ok: true, ocr: { provider: 'ollama', model: 'a', ok: true, missing: [] }, reasoning: { provider: 'ollama', model: 'b', ok: true, missing: [] } }
     // just now (< 5s)
     store.checkedAt = Date.now() - 1000
     await nextTick()

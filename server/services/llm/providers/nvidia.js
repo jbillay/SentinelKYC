@@ -11,10 +11,11 @@
 // fallback if NIM tool-calling misbehaves). The extract.json_strict_retry wrapper
 // lives in ../index.js so this provider gets it for free.
 //
-// OCR: NeMo Retriever OCR v2 (nvidia/nemoretriever-ocr-v2) — a dedicated OCR NIM, not
-// a chat model. POST to NVIDIA_OCR_ENDPOINT (the CV /v1/infer URL, e.g.
-// https://ai.api.nvidia.com/v1/cv/nvidia/nemoretriever-ocr-v2) with a base64 data-URI
-// image; response is text detections + polygon bounding boxes + confidences, which we
+// OCR: Nemotron OCR v2 (nvidia/nemotron-ocr-v2) — a dedicated OCR NIM, not a chat
+// model (nemoretriever-ocr-v1 hit end-of-life 2026-05-18). POST to NVIDIA_OCR_ENDPOINT
+// (the CV invoke URL, e.g. https://ai.api.nvidia.com/v1/cv/nvidia/nemotron-ocr-v2)
+// with a base64 data-URI image; response is text detections + polygon bounding boxes
+// + confidences, which we
 // flatten into the reading-order text string the extractors already expect — so nothing
 // downstream of ocrPage() changes. Handles the NVCF 202-poll pattern transparently.
 //

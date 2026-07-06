@@ -41,6 +41,7 @@ vi.mock('vue-router', () => ({
 // Page / component imports (after mocks)
 import AppShell from '@/layouts/AppShell.vue'
 import AgentsPanel from '@/components/AgentsPanel.vue'
+import AgentConfigForm from '@/components/AgentConfigForm.vue'
 import ProcessTab from '@/components/ProcessTab.vue'
 import DataModelTab from '@/components/DataModelTab.vue'
 import { useHealthStore } from '@/stores/health.js'
@@ -124,16 +125,38 @@ describe('AppShell', () => {
   it('shows the down banner when health.status is down', async () => {
     const w = mountC(AppShell)
     const health = useHealthStore()
-    health.ok = false   // computed status → 'down'
+    health.ok = false   // computed status → 'down'; llm null → API offline
     await w.vm.$nextTick()
-    expect(w.html()).toContain('Ollama is offline')
+    expect(w.html()).toContain('API offline')
+    expect(w.html()).toContain('The agent cannot run')
+  })
+
+  it('down banner names the failing task + provider with a remediation hint', async () => {
+    const w = mountC(AppShell)
+    const health = useHealthStore()
+    health.ok = false
+    health.llm = {
+      ok: false,
+      ocr: { provider: 'nvidia', model: 'nvidia/nemotron-ocr-v2', ok: false, detail: 'HTTP 403' },
+      reasoning: { provider: 'ollama', model: 'llama3.1:8b', ok: true, missing: [] },
+    }
+    await w.vm.$nextTick()
+    const html = w.html()
+    expect(html).toContain('OCR provider offline')
+    expect(html).toContain('NVIDIA')
+    expect(html).toContain('HTTP 403')
+    expect(html).toContain('NVIDIA_API_KEY')
   })
 
   it('shows the degraded banner when health.status is degraded', async () => {
     const w = mountC(AppShell)
     const health = useHealthStore()
     health.ok = true
-    health.ollama = { missing: ['llama3.1:8b'] }
+    health.llm = {
+      ok: true,
+      ocr: { provider: 'ollama', model: 'glm-ocr', ok: true, missing: [] },
+      reasoning: { provider: 'ollama', model: 'llama3.1:8b', ok: true, missing: ['llama3.1:8b'] },
+    }
     await w.vm.$nextTick()
     expect(w.html()).toContain('Models missing')
     expect(w.html()).toContain('llama3.1:8b')
@@ -143,10 +166,14 @@ describe('AppShell', () => {
     const w = mountC(AppShell)
     const health = useHealthStore()
     health.ok = true
-    health.ollama = { missing: [] }
+    health.llm = {
+      ok: true,
+      ocr: { provider: 'ollama', model: 'glm-ocr', ok: true, missing: [] },
+      reasoning: { provider: 'ollama', model: 'llama3.1:8b', ok: true, missing: [] },
+    }
     await w.vm.$nextTick()
     const html = w.html()
-    expect(html).not.toContain('Ollama is offline')
+    expect(html).not.toContain('offline')
     expect(html).not.toContain('Models missing')
   })
 
@@ -281,38 +308,18 @@ describe('AgentsPanel', () => {
     expect(w.html()).toContain('disabled')
   })
 
-  it('shows no-settings text for an agent with no fields', async () => {
+  it('renders a Configure link per agent row', async () => {
     const w = mountPanel()
     await new Promise((r) => setTimeout(r, 20))
-    expect(w.html()).toContain('No tunable settings')
+    const links = w.findAll('a').filter((a) => a.text().includes('Configure'))
+    expect(links.length).toBe(5)
   })
 
-  it('renders number inputs for number-type fields', async () => {
+  it('renders an enable/disable switch per agent row', async () => {
     const w = mountPanel()
     await new Promise((r) => setTimeout(r, 20))
-    const inputs = w.findAll('input[type="number"]')
-    expect(inputs.length).toBeGreaterThan(0)
-  })
-
-  it('renders boolean checkbox for boolean-type fields', async () => {
-    const w = mountPanel()
-    await new Promise((r) => setTimeout(r, 20))
-    // There should be checkboxes for the boolean field + agent toggles
     const checkboxes = w.findAll('input[type="checkbox"]')
-    expect(checkboxes.length).toBeGreaterThan(0)
-  })
-
-  it('renders select for select-type fields', async () => {
-    const w = mountPanel()
-    await new Promise((r) => setTimeout(r, 20))
-    const selects = w.findAll('select')
-    expect(selects.length).toBeGreaterThan(0)
-  })
-
-  it('shows version number on agent card for admin', async () => {
-    const w = mountPanel('admin')
-    await new Promise((r) => setTimeout(r, 20))
-    expect(w.html()).toContain('v3')
+    expect(checkboxes.length).toBe(5)
   })
 
   it('shows read-only message for non-admin users', async () => {
@@ -326,6 +333,80 @@ describe('AgentsPanel', () => {
     const w = mountPanel()
     await new Promise((r) => setTimeout(r, 20))
     expect(w.html()).toContain('agents list failed')
+  })
+})
+
+// ─── AgentConfigForm ─────────────────────────────────────────────────────────
+// The per-agent field form moved out of AgentsPanel into its own component,
+// rendered by the agent detail page (/admin/agents/:agentId).
+
+describe('AgentConfigForm', () => {
+  function mountForm(agent, canEdit = true) {
+    return mount(AgentConfigForm, { props: { agent, canEdit } })
+  }
+
+  it('renders number inputs for number-type fields', () => {
+    const w = mountForm(AGENT_NUMBER)
+    expect(w.findAll('input[type="number"]').length).toBe(2)
+  })
+
+  it('renders boolean checkbox for boolean-type fields', () => {
+    const w = mountForm(AGENT_BOOLEAN)
+    expect(w.findAll('input[type="checkbox"]').length).toBe(1)
+  })
+
+  it('renders select for select-type fields', () => {
+    const w = mountForm(AGENT_SELECT)
+    expect(w.findAll('select').length).toBe(1)
+  })
+
+  it('renders multiselect checkboxes with the current selection', () => {
+    const w = mountForm(AGENT_MULTI)
+    const boxes = w.findAll('.multiselect-opt input[type="checkbox"]')
+    expect(boxes.length).toBe(2)
+    expect(boxes[0].element.checked).toBe(true) // 'mock' is selected
+  })
+
+  it('shows the active version for admins', () => {
+    const w = mountForm(AGENT_NUMBER)
+    expect(w.html()).toContain('v3')
+  })
+
+  it('hides the save/reset actions for non-admins and disables inputs', () => {
+    const w = mountForm(AGENT_NUMBER, false)
+    expect(w.findAll('button').length).toBe(0)
+    expect(w.find('input[type="number"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('save emits the coerced full body after editing a field', async () => {
+    const w = mountForm(AGENT_NUMBER)
+    const input = w.find('input[type="number"]')
+    await input.setValue('0.9')
+    const saveBtn = w.findAll('button').find((b) => b.text().includes('Save changes'))
+    expect(saveBtn.attributes('disabled')).toBeUndefined()
+    await saveBtn.trigger('click')
+    const events = w.emitted('save')
+    expect(events).toBeTruthy()
+    expect(events[0][0]).toMatchObject({ autoMatchThreshold: 0.9, leadCount: 3, enabled: true })
+  })
+
+  it('reset restores the draft from the agent config', async () => {
+    const w = mountForm(AGENT_NUMBER)
+    await w.find('input[type="number"]').setValue('0.5')
+    const resetBtn = w.findAll('button').find((b) => b.text() === 'Reset')
+    await resetBtn.trigger('click')
+    const saveBtn = w.findAll('button').find((b) => b.text().includes('Save changes'))
+    expect(saveBtn.attributes('disabled')).toBeDefined() // no longer dirty
+  })
+
+  it('toggling a multiselect option marks the form dirty', async () => {
+    const w = mountForm(AGENT_MULTI)
+    const boxes = w.findAll('.multiselect-opt input[type="checkbox"]')
+    await boxes[1].setChecked(true) // add 'orbis'
+    const saveBtn = w.findAll('button').find((b) => b.text().includes('Save changes'))
+    expect(saveBtn.attributes('disabled')).toBeUndefined()
+    await saveBtn.trigger('click')
+    expect(w.emitted('save')[0][0].enrichmentVendors).toEqual(['mock', 'orbis'])
   })
 })
 

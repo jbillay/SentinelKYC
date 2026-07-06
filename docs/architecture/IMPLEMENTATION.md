@@ -272,7 +272,7 @@ PEP screening, recursive ownership-chain walking, authorized signatories, real-t
   - [X] `PATCH /api/dossiers/:cn/runs/:runId/hits/:hitId` — set / clear `human_override`. Re-derives `runs.final_screening_report` server-side via shared `services/screening/report.js` helper.
   - [X] `POST /api/dossiers/:cn/runs/:runId/carry-overrides-forward` — copies into `dossier_screening_overrides`.
   - [X] `GET /api/screening/lists` — versions + counts for Settings.
-  - [X] `GET` / `PATCH /api/screening/config` — singleton threshold + Bing-results-per-subject.
+  - [X] `GET` / `PATCH /api/screening/config` — singleton threshold + Bing-results-per-subject. *(Retired 2026-07: `matchThreshold` + `resultsPerSubject` migrated into the screening agent's versioned config — `agents/defs.js` + `POST /api/agents/screening/config`; the `screening_config` table survives only as the one-shot migration source in `agents/config.js#migrateLegacyScreeningConfig`.)*
   - [ ] `POST /api/screening/lists/refresh` — optional async list refresh; deferred (CLI is the source of truth per v1 plan).
 - [ ] CLAUDE.md — already documents the screening section, override flow, and `lists:refresh` CLI. Refresh only if new shapes land.
 - [ ] Demo script update — add a screening walkthrough step.

@@ -12,6 +12,20 @@ require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
 const VALID_PROVIDERS = ['ollama', 'nvidia'];
 const TASKS = ['ocr', 'reasoning'];
 
+// Misspelled variants of the vars this module reads are IGNORED by dotenv/process.env
+// lookup — which silently falls the task back to the default provider. Warn loudly
+// instead of letting a typo change which LLM runs.
+const MISSPELLED_VARS = {
+  LLM_REASON_PROVIDER: 'LLM_REASONING_PROVIDER',
+  OLLAMA_REASON_MODEL: 'OLLAMA_REASONING_MODEL',
+  NVIDIA_REASON_MODEL: 'NVIDIA_REASONING_MODEL',
+};
+for (const [wrong, right] of Object.entries(MISSPELLED_VARS)) {
+  if (String(process.env[wrong] || '').trim() !== '') {
+    console.warn(`[llm/config] ${wrong} is set but has no effect — rename it to ${right} in server/.env`);
+  }
+}
+
 function firstNonEmpty(...vals) {
   for (const v of vals) {
     if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
@@ -58,7 +72,7 @@ function resolveTask(task) {
     return {
       task,
       provider,
-      model: process.env.NVIDIA_OCR_MODEL || 'nvidia/nemoretriever-ocr-v2',
+      model: process.env.NVIDIA_OCR_MODEL || 'nvidia/nemotron-ocr-v2',
       baseUrl,
       apiKey,
       ocrEndpoint: firstNonEmpty(process.env.NVIDIA_OCR_ENDPOINT) || null,

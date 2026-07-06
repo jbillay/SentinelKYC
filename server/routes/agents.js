@@ -1,6 +1,7 @@
 // Agent registry + per-agent configuration. Reads are open to any signed-in
 // role; mutations are admin-tier like the other config surfaces (prompts,
-// risk matrix, screening config).
+// risk matrix). The screening engine knobs (matchThreshold, resultsPerSubject)
+// live here too since the legacy /api/screening/config was retired.
 const agentConfig = require('../agents/config');
 const { requireRole, readUserId } = require('../services/auth');
 

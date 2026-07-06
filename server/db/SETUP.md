@@ -26,7 +26,7 @@ It should be `Running`. If not: `Start-Service postgresql-x64-17`.
 
 ## 2. Create the dev database and role
 
-The Postgres bin directory is typically `C:\Program Files\PostgreSQL\17\bin`. Add it to your `PATH` for the rest of this session, or call the binaries by full path.
+The Postgres bin directory is typically `C:\Program Files\PostgreSQL\18\bin`. Add it to your `PATH` for the rest of this session, or call the binaries by full path.
 
 ```powershell
 $env:PATH += ";C:\Program Files\PostgreSQL\17\bin"

@@ -15,22 +15,6 @@ async function refreshLlmHealth() {
   return state.llmHealth;
 }
 
-// Legacy projection for the current web health store. Phase 4 P4 replaces this
-// with the richer `llm` block below and drops the `ollama` key.
-function legacyOllamaBlock(h) {
-  const tasks = [h.ocr, h.reasoning].filter(Boolean);
-  const reachable = tasks.length > 0 && tasks.every((t) => t.ok);
-  const missing = [...new Set(tasks.flatMap((t) => t.missing || []))];
-  return {
-    ok: reachable,
-    host: h.ocr?.host || h.reasoning?.host || null,
-    reason: reachable ? undefined : tasks.find((t) => !t.ok)?.detail || 'not yet probed',
-    models: { ocr: h.ocr?.model || null, reasoning: h.reasoning?.model || null },
-    missing,
-    checkedAt: h.checkedAt,
-  };
-}
-
 function register(app) {
   app.get('/api/health', async (_req, res) => {
     // Per-agent enablement (Phase 2). Best-effort: a DB hiccup must not take
@@ -52,7 +36,6 @@ function register(app) {
     res.json({
       ok: state.llmHealth.ok,
       llm: state.llmHealth,
-      ollama: legacyOllamaBlock(state.llmHealth),
       ...(agents ? { agents } : {}),
       server: { uptime: process.uptime(), now: Date.now() },
     });

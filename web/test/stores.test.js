@@ -54,20 +54,67 @@ describe('decision store', () => {
 describe('health store', () => {
   afterEach(() => vi.useRealTimers())
 
-  it('reports ok when the probe succeeds with all models present', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(jsonRes({ ok: true, ollama: { ok: true, missing: [] } }))
+  it('reports ok with a single-provider label when both tasks use ollama', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(jsonRes({
+      ok: true,
+      llm: {
+        ok: true,
+        ocr: { provider: 'ollama', model: 'glm-ocr', ok: true, missing: [] },
+        reasoning: { provider: 'ollama', model: 'llama3.1:8b', ok: true, missing: [] },
+      },
+    }))
     const s = useHealthStore()
     await s.check()
     expect(s.status).toBe('ok')
     expect(s.statusLabel).toBe('Ollama online')
   })
 
+  it('reports ok with a combined label when providers are mixed', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(jsonRes({
+      ok: true,
+      llm: {
+        ok: true,
+        ocr: { provider: 'nvidia', model: 'nvidia/nemotron-ocr-v2', ok: true },
+        reasoning: { provider: 'ollama', model: 'llama3.1:8b', ok: true, missing: [] },
+      },
+    }))
+    const s = useHealthStore()
+    await s.check()
+    expect(s.status).toBe('ok')
+    expect(s.statusLabel).toBe('NVIDIA + Ollama online')
+  })
+
   it('reports degraded when models are missing', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(jsonRes({ ok: true, ollama: { ok: false, missing: ['glm-ocr'], reason: 'missing' } }))
+    globalThis.fetch = vi.fn().mockResolvedValue(jsonRes({
+      ok: true,
+      llm: {
+        ok: true,
+        ocr: { provider: 'ollama', model: 'glm-ocr', ok: true, missing: ['glm-ocr'], detail: 'model "glm-ocr" not installed' },
+        reasoning: { provider: 'ollama', model: 'llama3.1:8b', ok: true, missing: [] },
+      },
+    }))
     const s = useHealthStore()
     await s.check()
     expect(s.status).toBe('degraded')
-    expect(s.lastError).toBe('missing')
+    expect(s.missing).toEqual(['glm-ocr'])
+  })
+
+  it('reports down naming the failing task when one provider is unreachable', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(jsonRes({
+      ok: false,
+      llm: {
+        ok: false,
+        ocr: { provider: 'nvidia', model: 'nvidia/nemotron-ocr-v2', ok: false, detail: 'HTTP 403' },
+        reasoning: { provider: 'ollama', model: 'llama3.1:8b', ok: true, missing: [] },
+      },
+    }))
+    const s = useHealthStore()
+    await s.check()
+    expect(s.status).toBe('down')
+    expect(s.statusLabel).toBe('OCR provider offline')
+    expect(s.lastError).toBe('HTTP 403')
+    expect(s.failing).toHaveLength(1)
+    expect(s.failing[0].provider).toBe('nvidia')
   })
 
   it('reports down when the request throws', async () => {
@@ -75,12 +122,12 @@ describe('health store', () => {
     const s = useHealthStore()
     await s.check()
     expect(s.status).toBe('down')
-    expect(s.statusLabel).toBe('Ollama offline')
+    expect(s.statusLabel).toBe('API offline')
   })
 
   it('starts a single poll timer and stops it', async () => {
     vi.useFakeTimers()
-    globalThis.fetch = vi.fn().mockResolvedValue(jsonRes({ ok: true, ollama: { ok: true } }))
+    globalThis.fetch = vi.fn().mockResolvedValue(jsonRes({ ok: true, llm: { ok: true } }))
     const s = useHealthStore()
     s.start()
     s.start() // idempotent — no second timer

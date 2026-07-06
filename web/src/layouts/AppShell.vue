@@ -27,10 +27,13 @@ onBeforeUnmount(() => health.stop())
       <div v-if="health.status === 'down'" class="health-banner health-banner--down" role="alert">
         <span class="material-symbols-outlined">error</span>
         <div class="banner-body">
-          <strong>Ollama is offline.</strong> The agent cannot run until Ollama is reachable at
-          <code class="t-mono">{{ health.ollama?.host || 'http://127.0.0.1:11434' }}</code>.
-          Start it with <code class="t-mono">ollama serve</code>.
-          <span v-if="health.lastError" class="banner-reason">Reason: {{ health.lastError }}</span>
+          <strong>{{ health.statusLabel }}.</strong> The agent cannot run.
+          <template v-for="f in health.failing" :key="f.task">
+            {{ f.taskLabel }} ({{ f.providerLabel }} · <code class="t-mono">{{ f.model || '?' }}</code>) is unreachable<template v-if="f.detail">: <span class="banner-reason">{{ f.detail }}</span></template>.
+            <template v-if="f.provider === 'ollama'">Start it with <code class="t-mono">ollama serve</code>.</template>
+            <template v-else-if="f.provider === 'nvidia'">Check <code class="t-mono">NVIDIA_API_KEY</code> and <code class="t-mono">NVIDIA_OCR_ENDPOINT</code> in <code class="t-mono">server/.env</code>.</template>
+          </template>
+          <span v-if="!health.failing.length && health.lastError" class="banner-reason">Reason: {{ health.lastError }}</span>
         </div>
         <button type="button" class="banner-action" @click="health.check">Retry</button>
       </div>
@@ -38,9 +41,9 @@ onBeforeUnmount(() => health.stop())
       <div v-else-if="health.status === 'degraded'" class="health-banner health-banner--degraded" role="alert">
         <span class="material-symbols-outlined">warning</span>
         <div class="banner-body">
-          <strong>Models missing.</strong> Ollama is online but the following models are not installed:
-          <span class="t-mono">{{ (health.ollama?.missing || []).join(', ') }}</span>.
-          Runs will fail until they are pulled.
+          <strong>Models missing.</strong> Ollama is reachable but the following models are not installed:
+          <span class="t-mono">{{ health.missing.join(', ') }}</span>.
+          Pull them with <code class="t-mono">ollama pull &lt;model&gt;</code> — runs will fail until they are.
         </div>
       </div>
 

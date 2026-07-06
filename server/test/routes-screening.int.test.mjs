@@ -1,4 +1,6 @@
-// Integration tests for routes/screening.js (config, lists, hits/overrides).
+// Integration tests for routes/screening.js (lists, hits/overrides).
+// Screening engine config (match threshold, results per subject) moved into
+// the screening agent's versioned config — covered by routes-agents tests.
 import { it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import {
@@ -6,7 +8,6 @@ import {
   api,
   asAdmin,
   getRepo,
-  getPool,
   seedReference,
   truncateRunData,
   closePool,
@@ -27,8 +28,6 @@ describeIntegration('routes: screening', () => {
 
   beforeEach(async () => {
     await truncateRunData();
-    // Restore the default screening config after each test.
-    await repo.setScreeningConfig({ matchThreshold: 0.85 });
 
     // Seed a dossier + run + one hit + evaluation for hit-level tests.
     const dossier = await repo.upsertDossier({ companyNumber: '01234567', companyName: 'ACME LTD' });
@@ -55,29 +54,11 @@ describeIntegration('routes: screening', () => {
     // May be empty if lists:refresh hasn't run, which is fine in CI.
   });
 
-  // ─── Screening config ───────────────────────────────────────────────────────
+  // ─── Retired config endpoints ───────────────────────────────────────────────
 
-  it('GET /api/screening/config returns the config shape', async () => {
+  it('GET /api/screening/config is gone (404)', async () => {
     const res = await asAdmin((await api()).get('/api/screening/config'));
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('matchThreshold');
-    expect(res.body.matchThreshold).toBeTypeOf('number');
-  });
-
-  it('PATCH /api/screening/config (admin) updates matchThreshold', async () => {
-    const res = await asAdmin((await api())
-      .patch('/api/screening/config')
-      .send({ matchThreshold: 0.9 }));
-    expect(res.status).toBe(200);
-    expect(res.body.matchThreshold).toBe(0.9);
-  });
-
-  it('PATCH /api/screening/config rejects an out-of-range threshold', async () => {
-    const res = await asAdmin((await api())
-      .patch('/api/screening/config')
-      .send({ matchThreshold: 0.2 }));
-    expect(res.status).toBe(400);
-    expect(res.body.code).toBe('invalid_threshold');
+    expect(res.status).toBe(404);
   });
 
   // ─── Run-level screening ────────────────────────────────────────────────────
@@ -166,8 +147,8 @@ describeIntegration('routes: screening', () => {
     expect(res.body).toHaveProperty('partyLevel');
   });
 
-  it('GET /api/screening/config requires auth', async () => {
-    const res = await (await api()).get('/api/screening/config');
+  it('GET /api/screening/lists requires auth', async () => {
+    const res = await (await api()).get('/api/screening/lists');
     expect(res.status).toBe(401);
   });
 });

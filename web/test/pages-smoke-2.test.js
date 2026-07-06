@@ -13,9 +13,10 @@ import { setActivePinia, createPinia, getActivePinia } from 'pinia'
 
 // ── Global mocks (must precede component imports) ──────────────────────────
 const mockPush = vi.fn()
+const mockReplace = vi.fn()
 const mockRoute = { query: {}, params: {}, name: 'run', hash: '' }
 vi.mock('vue-router', () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
   useRoute: () => mockRoute,
   RouterLink: { template: '<a><slot /></a>' },
   RouterView: { template: '<div />' },
@@ -323,14 +324,12 @@ describe('AdminPage', () => {
     expect(w.html().length).toBeGreaterThan(10)
   })
 
-  it('navigates to risk-matrix tab via hash', async () => {
+  it('redirects the legacy #risk-matrix hash to the risk-assessment agent page', async () => {
     mockRoute.hash = '#risk-matrix'
-    // versionId must be a string — the template calls .slice() on it
-    const MATRIX_ACTIVE = { versionId: 'uuid-v1-abc', version: 'v1.0', body: {}, notes: '', createdAt: '' }
-    globalThis.fetch = vi.fn()
-      .mockResolvedValue(ok(MATRIX_ACTIVE)) // active + versions + any fetchVersion calls
+    mockReplace.mockClear()
     const w = mountPage(AdminPage)
     await new Promise((r) => setTimeout(r, 30))
     expect(w.html().length).toBeGreaterThan(10)
+    expect(mockReplace).toHaveBeenCalledWith({ name: 'admin-agent', params: { agentId: 'risk-assessment' } })
   })
 })

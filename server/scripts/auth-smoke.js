@@ -138,7 +138,7 @@ async function run() {
   const NIL = '00000000-0000-0000-0000-000000000000';
   const GUARDED = [
     // [label, method, path, body, minRole]
-    ['screening config', 'PATCH', '/api/screening/config', { matchThreshold: 0.9 }, 'admin'],
+    ['agent config save', 'POST', '/api/agents/screening/config', { body: {} }, 'admin'],
     ['hit override', 'PATCH', `/api/dossiers/00000000/runs/${NIL}/hits/${NIL}`, { decision: 'dismissed' }, 'reviewer'],
     ['carry overrides forward', 'POST', `/api/dossiers/00000000/runs/${NIL}/carry-overrides-forward`, {}, 'reviewer'],
     ['party override', 'PATCH', `/api/parties/${NIL}/overrides`, { listSource: 'ofac_sdn', decision: 'dismissed' }, 'reviewer'],
@@ -180,13 +180,13 @@ async function run() {
     { body: { decision: 'dismissed' }, csrf: rcsrf2 },
   );
   ok('reviewer → hit override → not 403', hitOverrideAsReviewer.status !== 403, `status=${hitOverrideAsReviewer.status}`);
-  const cfgAsReviewer = await rc.req('PATCH', '/api/screening/config', {
-    body: { matchThreshold: 0.9 },
+  const cfgAsReviewer = await rc.req('POST', '/api/agents/screening/config', {
+    body: { body: {} },
     csrf: rcsrf2,
   });
-  ok('reviewer → screening config (admin-only) → 403', cfgAsReviewer.status === 403);
+  ok('reviewer → agent config save (admin-only) → 403', cfgAsReviewer.status === 403);
 
-  // Admin passes the screening-config guard (and every lower tier).
+  // Admin passes the agent-config guard (and every lower tier).
   const ac = makeClient();
   const acsrf0 = (await ac.req('GET', '/api/auth/csrf')).json?.csrfToken;
   const adminLogin = await ac.req('POST', '/api/auth/login', {
@@ -195,13 +195,16 @@ async function run() {
   });
   ok('admin login → 200', adminLogin.status === 200, `status=${adminLogin.status} (check SEED_ADMIN_PASSWORD vs seeded user)`);
   const acsrf = (await ac.req('GET', '/api/auth/csrf')).json?.csrfToken;
-  const cfgAsAdmin = await ac.req('PATCH', '/api/screening/config', {
-    body: { matchThreshold: 0.85 },
+  // Round-trip the CURRENT screening agent config back through the save route
+  // so the smoke never resets a tuned value (versions are append-only anyway).
+  const agentDetail = await ac.req('GET', '/api/agents/screening');
+  const cfgAsAdmin = await ac.req('POST', '/api/agents/screening/config', {
+    body: { body: agentDetail.json?.config || {}, notes: 'auth-smoke round-trip' },
     csrf: acsrf,
   });
   // Strict: 200, not merely "not 403" — a failed admin login would otherwise
   // make this pass vacuously with a 401.
-  ok('admin → screening config → 200', cfgAsAdmin.status === 200, `status=${cfgAsAdmin.status}`);
+  ok('admin → agent config save → 200', cfgAsAdmin.status === 200, `status=${cfgAsAdmin.status}`);
 
   // Admin Members list → 200 + a real users array (at least the three seeded).
   const usersAsAdmin = await ac.req('GET', '/api/admin/users');

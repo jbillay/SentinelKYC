@@ -5,8 +5,8 @@
 // evaluate_adverse_media decides relevance + severity. Note GDELT returns
 // headlines only — `rawEntry.snippet` is empty.
 //
-// Articles fetched per subject = `screening_config.bing_results_per_subject`
-// (clamped 1..100, default 20).
+// Articles fetched per subject = the screening agent config's
+// `resultsPerSubject` (clamped 1..100, default 20).
 //
 // Concurrency lives inside services/adverseMedia/gdelt.js — strictly serial
 // with 6s spacing (GDELT's public rate limit is one request / 5s) plus two
@@ -22,7 +22,6 @@ const crypto = require('crypto');
 const { traceEvent, errorEvent } = require('../../state');
 const { withFragment } = require('../../fragments');
 const adverseMedia = require('../../../services/adverseMedia');
-const { getScreeningConfig } = require('../../../db/repo');
 
 function shouldScreen(subject) {
   return subject.kind === 'individual';
@@ -65,8 +64,7 @@ const screenAdverseMedia = withFragment(
       };
     }
 
-    const cfg = await getScreeningConfig();
-    const max = Math.min(100, Math.max(1, cfg.bingResultsPerSubject ?? 20));
+    const max = Math.min(100, Math.max(1, agentCfg.resultsPerSubject ?? 20));
 
     const startedAt = Date.now();
     const errors = [];

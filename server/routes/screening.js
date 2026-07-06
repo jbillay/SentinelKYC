@@ -1,8 +1,9 @@
-// Screening: sanctions lists, config, run-level hits + evaluations + overrides.
+// Screening: sanctions lists, run-level hits + evaluations + overrides.
 //
 // Role guards (CODE_REVIEW §3.2): overriding a screening decision IS a decision
-// → reviewer; the match threshold is engine configuration on par with the risk
-// matrix → admin. Guards live here, next to the handlers, not in index.js.
+// → reviewer. Guards live here, next to the handlers, not in index.js.
+// Screening engine configuration (match threshold, adverse-media caps) lives
+// in the screening agent's versioned config — routes/agents.js, admin-tier.
 const repo = require('../db/repo');
 const { rebuildScreeningReport } = require('../sse/runtime');
 const { requireRole } = require('../services/auth');
@@ -114,45 +115,9 @@ function register(app) {
     }
   });
 
-  app.get('/api/screening/config', async (_req, res, next) => {
-    try {
-      const cfg = await repo.getScreeningConfig();
-      res.json(cfg);
-    } catch (err) {
-      next(err);
-    }
-  });
-
-  app.patch('/api/screening/config', requireRole('admin'), async (req, res, next) => {
-    try {
-      const { matchThreshold, bingResultsPerSubject } = req.body || {};
-      const patch = {};
-      if (matchThreshold !== undefined) {
-        const n = Number(matchThreshold);
-        // See CODE_REVIEW §3.11.
-        if (!Number.isFinite(n) || n < 0.5 || n > 0.99) {
-          return res.status(400).json({
-            error: 'matchThreshold must be a number in [0.5, 0.99]',
-            code: 'invalid_threshold',
-          });
-        }
-        patch.matchThreshold = n;
-      }
-      if (bingResultsPerSubject !== undefined) {
-        const n = Number(bingResultsPerSubject);
-        if (!Number.isInteger(n) || n < 1 || n > 100) {
-          return res.status(400).json({ error: 'bingResultsPerSubject must be 1-100' });
-        }
-        patch.bingResultsPerSubject = n;
-      }
-      const updated = await repo.setScreeningConfig(patch);
-      if (!updated) return res.status(404).json({ error: 'screening_config row missing' });
-      const cfg = await repo.getScreeningConfig();
-      res.json(cfg);
-    } catch (err) {
-      next(err);
-    }
-  });
+  // /api/screening/config is retired — matchThreshold + resultsPerSubject
+  // moved into the screening agent's versioned config (POST
+  // /api/agents/screening/config). See agents/defs.js.
 }
 
 module.exports = { register };

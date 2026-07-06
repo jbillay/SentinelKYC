@@ -8,9 +8,9 @@
 //   - DataModelTab.vue      (~66% br / 48% fn): describeType variants, isExpandable
 //     / childFields branches, fragmentGroups ordering, fmtDate, toggleSample,
 //     copy success + clipboard-throw, section collapse toggles, persisted FK rows.
-//   - AgentsPanel.vue       (~44% fn): coerce (number/boolean/multiselect/text),
-//     isDirty, toggleMulti add+remove, onToggle, onSave (ok + fail), onReset,
-//     canEdit true + false rendering.
+//   - AgentDetailPage.vue + AgentConfigForm.vue (admin restructure): coerce
+//     (number/boolean/multiselect/text), isDirty, toggleMulti add+remove,
+//     onToggle, onSave (ok + fail), onReset, canEdit true + false rendering.
 //   - useParty / usePrompts / usePartyReviewQueue composables: error + catch +
 //     guard branches not yet hit by composables-fetch.test.js.
 //   - useRun.js: store-backed accessors + pick/cancel/remove + ensureAttached.
@@ -51,7 +51,7 @@ vi.mock('vue-router', () => ({
 
 import PartyGraph from '@/components/PartyGraph.vue'
 import DataModelTab from '@/components/DataModelTab.vue'
-import AgentsPanel from '@/components/AgentsPanel.vue'
+import AgentDetailPage from '@/pages/AgentDetailPage.vue'
 import RiskAssessmentCard from '@/components/RiskAssessmentCard.vue'
 import ScreeningEvidenceCard from '@/components/ScreeningEvidenceCard.vue'
 import LiveEvidenceCard from '@/components/LiveEvidenceCard.vue'
@@ -457,65 +457,83 @@ function seedAuth(role = 'admin') {
   return auth
 }
 
-// Fresh deep clone each time — the composable assigns `agents.value = res.json()`
-// by reference, so a shared array would leak mutations across tests.
-const cloneAgents = () => JSON.parse(JSON.stringify(AGENTS))
-
-describe('AgentsPanel', () => {
-  function mountPanel(role = 'admin', agents = cloneAgents()) {
-    globalThis.fetch = vi.fn().mockResolvedValue(ok(agents))
-    seedAuth(role)
-    return mountC(AgentsPanel)
+describe('AgentDetailPage', () => {
+  const PANEL_STUBS = {
+    PromptsPanel: { template: '<div class="stub-prompts" />' },
+    RiskMatrixPanel: { template: '<div class="stub-risk-matrix" />' },
+    ScreeningSourcesPanel: { template: '<div class="stub-sources" />' },
   }
 
-  it('renders all field types for an admin (number / boolean / select / multiselect / text)', async () => {
-    const w = mountPanel('admin')
+  // Detail shape: list shape + versions history.
+  const detailOf = (a) => ({ ...JSON.parse(JSON.stringify(a)), versions: [
+    { id: 'cv1', version: a.activeVersion, notes: null, createdAt: '2026-06-01T00:00:00Z' },
+  ] })
+
+  function mountDetail(agentId, role = 'admin', agent) {
+    globalThis.fetch = vi.fn().mockResolvedValue(ok(agent ?? detailOf(AGENTS.find((x) => x.id === agentId))))
+    seedAuth(role)
+    return mountC(AgentDetailPage, { agentId }, { global: { plugins: [getPinia()], stubs: PANEL_STUBS } })
+  }
+
+  it('renders header, description, and all field types for an admin', async () => {
+    const w = mountDetail('entity-resolution')
     await flush()
-    expect(w.findAll('input[type="number"]').length).toBeGreaterThanOrEqual(2)
-    expect(w.findAll('select').length).toBeGreaterThanOrEqual(1)
-    expect(w.findAll('input[type="text"]').length).toBeGreaterThanOrEqual(1)
-    // multiselect checkboxes for the two vendor options
-    expect(w.html()).toContain('mock')
-    expect(w.html()).toContain('orbis')
+    expect(w.html()).toContain('Entity resolution')
+    expect(w.html()).toContain('Resolves the entity.')
+    expect(w.findAll('input[type="number"]').length).toBe(2)
+    // required agents render the badge and a disabled switch
+    expect(w.html()).toContain('required')
   })
 
-  it('editing a number field marks the card dirty and enables Save', async () => {
-    const w = mountPanel('admin')
+  it('renders text + select + multiselect field types', async () => {
+    const w = mountDetail('screening')
     await flush()
-    const numInput = w.find('input[type="number"]')
-    await numInput.setValue('0.9')
-    await nextTick()
-    const saveBtn = w.findAll('button').find((b) => /Save changes/.test(b.text()))
-    expect(saveBtn).toBeTruthy()
-    expect(saveBtn.attributes('disabled')).toBeUndefined()
+    expect(w.findAll('select').length).toBe(1)
+    expect(w.findAll('input[type="text"]').length).toBe(1)
+    const w2 = mountDetail('ubo-structure')
+    await flush()
+    expect(w2.findAll('.multiselect-opt input[type="checkbox"]').length).toBe(2)
   })
 
-  it('Save POSTs the coerced config and re-seeds on success', async () => {
+  it('shows the sources panel only for screening and the matrix panel only for risk assessment', async () => {
+    const w = mountDetail('screening')
+    await flush()
+    expect(w.find('.stub-sources').exists()).toBe(true)
+    expect(w.find('.stub-risk-matrix').exists()).toBe(false)
+    const w2 = mountDetail('entity-resolution')
+    await flush()
+    expect(w2.find('.stub-sources').exists()).toBe(false)
+  })
+
+  it('Save POSTs the coerced config and shows the saved banner', async () => {
     seedAuth('admin')
-    const updated = { ...AGENTS[0], config: { autoMatchThreshold: 0.9, leadCount: 3 }, activeVersion: 4 }
+    const detail = detailOf(AGENTS[0])
+    const updated = { ...detail, config: { autoMatchThreshold: 0.9, leadCount: 3 }, activeVersion: 4 }
     globalThis.fetch = vi
       .fn()
-      .mockResolvedValueOnce(ok(cloneAgents())) // fetchAgents
+      .mockResolvedValueOnce(ok(detail)) // fetchAgent
       .mockResolvedValueOnce(ok({ agent: updated })) // saveConfig
-    const w = mountC(AgentsPanel)
+    const w = mountC(AgentDetailPage, { agentId: 'entity-resolution' }, { global: { plugins: [getPinia()], stubs: PANEL_STUBS } })
     await flush()
     await w.find('input[type="number"]').setValue('0.9')
     await nextTick()
     const saveBtn = w.findAll('button').find((b) => /Save changes/.test(b.text()))
+    expect(saveBtn.attributes('disabled')).toBeUndefined()
     await saveBtn.trigger('click')
     await flush()
     const postCall = globalThis.fetch.mock.calls.find((c) => String(c[0]).includes('/config'))
     expect(postCall).toBeTruthy()
     expect(JSON.parse(postCall[1].body).body.autoMatchThreshold).toBe(0.9)
+    expect(w.html()).toContain('Saved — applies to the next run.')
   })
 
   it('Save failure surfaces the error and leaves the draft', async () => {
     seedAuth('admin')
     globalThis.fetch = vi
       .fn()
-      .mockResolvedValueOnce(ok(cloneAgents())) // fetchAgents
+      .mockResolvedValueOnce(ok(detailOf(AGENTS[0]))) // fetchAgent
       .mockResolvedValueOnce(fail(400, { error: 'invalid_config', validationErrors: ['too low'] }))
-    const w = mountC(AgentsPanel)
+    const w = mountC(AgentDetailPage, { agentId: 'entity-resolution' }, { global: { plugins: [getPinia()], stubs: PANEL_STUBS } })
     await flush()
     await w.find('input[type="number"]').setValue('0.9')
     await nextTick()
@@ -526,7 +544,7 @@ describe('AgentsPanel', () => {
   })
 
   it('Reset restores the draft and disables the buttons again', async () => {
-    const w = mountPanel('admin')
+    const w = mountDetail('entity-resolution')
     await flush()
     const numInput = w.find('input[type="number"]')
     await numInput.setValue('0.99')
@@ -535,66 +553,48 @@ describe('AgentsPanel', () => {
     expect(resetBtn.attributes('disabled')).toBeUndefined()
     await resetBtn.trigger('click')
     await nextTick()
-    // after reset the field value is back to the original
     expect(w.find('input[type="number"]').element.value).toBe('0.85')
   })
 
-  it('toggling a multiselect option adds then removes it from the draft', async () => {
-    const w = mountPanel('admin')
-    await flush()
-    // find the 'orbis' checkbox (not currently selected)
-    const multiInputs = w.findAll('.multiselect-opt input[type="checkbox"]')
-    expect(multiInputs.length).toBe(2)
-    // toggle the second option on
-    await multiInputs[1].setValue(true)
-    await nextTick()
-    // toggle it back off
-    await multiInputs[1].setValue(false)
-    await nextTick()
-    expect(w.html().length).toBeGreaterThan(50)
-  })
-
-  it('flipping a boolean field checkbox updates the draft', async () => {
-    const w = mountPanel('admin')
-    await flush()
-    // the document-manager pageCapEnabled boolean field (a field-level checkbox)
-    const fieldCheckbox = w
-      .findAll('.field input[type="checkbox"]')
-      .find((c) => !c.element.closest('.multiselect'))
-    expect(fieldCheckbox).toBeTruthy()
-    await fieldCheckbox.setValue(false)
-    await nextTick()
-    expect(w.html().length).toBeGreaterThan(50)
-  })
-
-  it('toggling an agent enable switch calls setEnabled and re-seeds', async () => {
+  it('toggling the enable switch calls the enabled route', async () => {
     seedAuth('admin')
-    const toggled = { ...AGENTS[1], enabled: false }
+    const detail = detailOf(AGENTS[1])
     globalThis.fetch = vi
       .fn()
-      .mockResolvedValueOnce(ok(cloneAgents())) // fetchAgents
-      .mockResolvedValueOnce(ok({ agent: toggled })) // setEnabled
-    const w = mountC(AgentsPanel)
+      .mockResolvedValueOnce(ok(detail)) // fetchAgent
+      .mockResolvedValueOnce(ok({ agent: { ...detail, enabled: false } })) // setEnabled
+    const w = mountC(AgentDetailPage, { agentId: 'document-manager' }, { global: { plugins: [getPinia()], stubs: PANEL_STUBS } })
     await flush()
-    // the document-manager toggle (not required, so enabled)
-    const toggle = w
-      .findAll('.agent-switch input[type="checkbox"]')
-      .find((c) => c.attributes('disabled') === undefined)
-    expect(toggle).toBeTruthy()
+    const toggle = w.find('.agent-switch input[type="checkbox"]')
+    expect(toggle.attributes('disabled')).toBeUndefined()
     await toggle.setValue(false)
     await flush()
     const enabledCall = globalThis.fetch.mock.calls.find((c) => String(c[0]).includes('/enabled'))
     expect(enabledCall).toBeTruthy()
+    expect(w.html()).toContain('disabled')
   })
 
   it('non-admin users see read-only fields and the read-only notice', async () => {
-    const w = mountPanel('analyst')
+    const w = mountDetail('entity-resolution', 'analyst')
     await flush()
     expect(w.html()).toContain('editing requires the admin role')
-    // form-actions (Save/Reset) are gated behind canEdit
     expect(w.findAll('.form-actions').length).toBe(0)
-    // inputs are disabled
     expect(w.find('input[type="number"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('shows an error when the agent is unknown', async () => {
+    seedAuth('admin')
+    globalThis.fetch = vi.fn().mockResolvedValue(fail(404, { error: 'unknown agent' }))
+    const w = mountC(AgentDetailPage, { agentId: 'nope' }, { global: { plugins: [getPinia()], stubs: PANEL_STUBS } })
+    await flush()
+    expect(w.html()).toContain('unknown agent')
+  })
+
+  it('shows the no-tunable-settings message for a fieldless agent', async () => {
+    const agent = { id: 'qa', name: 'Quality assurance', description: 'Gate.', required: false, enabled: true, activeVersion: 1, config: {}, fields: [], versions: [] }
+    const w = mountDetail('qa', 'admin', agent)
+    await flush()
+    expect(w.html()).toContain('no tunable settings')
   })
 })
 

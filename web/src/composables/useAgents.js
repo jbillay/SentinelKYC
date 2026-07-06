@@ -1,10 +1,12 @@
 import { ref } from 'vue'
 
-// Settings → Agents. List comes from /api/agents (definition metadata +
-// active config, secrets masked); saves create a new active version
-// server-side (versioned + audited). Mutations are admin-tier.
+// Admin → Agents. List comes from /api/agents (definition metadata + active
+// config, secrets masked); `agent` is the single-agent detail used by the
+// per-agent admin section (/admin/agents/:agentId). Saves create a new active
+// version server-side (versioned + audited). Mutations are admin-tier.
 export function useAgents() {
   const agents = ref([])
+  const agent = ref(null) // detail for one agent (fetchAgent)
   const loading = ref(false)
   const saving = ref(null) // agent id currently saving
   const error = ref(null)
@@ -23,9 +25,29 @@ export function useAgents() {
     }
   }
 
+  async function fetchAgent(id) {
+    loading.value = true
+    error.value = null
+    try {
+      const res = await fetch(`/api/agents/${encodeURIComponent(id)}`)
+      if (res.status === 404) throw new Error('unknown agent')
+      if (!res.ok) throw new Error(`agent detail failed: ${res.status}`)
+      agent.value = await res.json()
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      loading.value = false
+    }
+  }
+
   function replaceAgent(updated) {
     const ix = agents.value.findIndex((a) => a.id === updated.id)
     if (ix >= 0) agents.value.splice(ix, 1, updated)
+    // The toggle/save routes return the list shape (no `versions`); keep the
+    // detail's version history while refreshing config + enabled state.
+    if (agent.value && agent.value.id === updated.id) {
+      agent.value = { ...agent.value, ...updated }
+    }
   }
 
   async function setEnabled(id, enabled) {
@@ -71,5 +93,5 @@ export function useAgents() {
     }
   }
 
-  return { agents, loading, saving, error, fetchAgents, setEnabled, saveConfig }
+  return { agents, agent, loading, saving, error, fetchAgents, fetchAgent, setEnabled, saveConfig }
 }
